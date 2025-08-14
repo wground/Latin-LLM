@@ -1,0 +1,956 @@
+VERSION O:
+Test 1:
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/train_latin.py
+🏛️  LatinLLM Training Script
+==================================================
+✅ Loaded system config from latin_training_config.json
+Device: cpu (float32)
+Model: 6 layers, 6 heads, 384 embedding dim
+Training: 4 batch size, 256 context length
+Max iterations: 2500
+Compilation: disabled
+Tokens per iteration: 4,096
+🚀 Initializing new model from scratch for Latin
+number of parameters: 29.94M
+num decayed parameter tensors: 26, with 30,031,872 parameters
+num non-decayed parameter tensors: 13, with 4,992 parameters
+using fused AdamW: False
+(Training)
+✅ Training completed!
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/sample_latin.py
+Loading model from out-latin/ckpt.pt
+number of parameters: 29.94M
+Model loaded successfully. Best validation loss: 3.9799
+Using GPT-2 tokenizer (tiktoken) for Latin text...
+Starting with prompt: 'caesar '
+
+Generating 5 samples with 200 tokens each:
+Temperature: 0.8, Top-k: 40
+================================================================================
+
+--- Sample 1 ---
+caesar ipsas rerum publicas ad caem diebus achillis consulibus, si uelletur, si quisquam dixerat, quod nisi quodam paxisset, quid m. uidetustum, si illud nisi quid iniuriam in praetores ferebant. postquam etiam si eum iudicatum eius, quae uero diebus se in eodem fieri possit, tum alexandri quid nauibus, ut sit, ubi naturae in prouincialis, quem in quibusdam, nullis aut fas autem locis in uno genere aetate uacare, ad ea quae maximeque non est.  sed tamen quisquam sine ualeternum habere, ut eam rem aut quod ad me non
+----------------------------------------
+
+--- Sample 2 ---
+caesar ipsis dariis, ut scilicet, autem etiam tibi ea te dolor, non est. sed eos, inquit, quid possum, quicquid tibi esse intellego quid te, ut tibi putare? sciam? quidquid putas a te sciam, etiam meum, quod tibi quamquam tuo scriberem, quid sit, scire, ut mihi nihil non possum, id te habeo. itaque in litteris erga te ipso, quod ad te ualeas, quid erit, ut scripsi quam tibi essem, ut litteras, quid tu iam, etiam te, in tua uelim, non haec te a te puto; sed ut scribis litteras, quid sit, ut ut mihi non uenire
+----------------------------------------
+
+--- Sample 3 ---
+caesar ianum filio, quem de imperio, quod m. a.c. romae ualerio et m. marcius, c. sulpicio l. l. ser. ualerius c. m. f. a. s. d. a. ualerio consulibus, sperte et l. m. cornelio sal. claudius consulibus q. fabius sunt eius consules uenisset, quem postum senatum fuluius consulatus consulto uetere annus, cum ad collegam consules consulatum m. fabius l. claudio cum. eo creati in senatu ea et cum ea praetoribus haberet.  idibus eius quinctius tribunus consulem annum consiliis, quinctius factum est aduersus quidem uendam consulendae ad roman
+----------------------------------------
+
+--- Sample 4 ---
+caesar ipsius conscripsit et illius aduersus, qui in ea ad uenit, ait ipsa in quis uit, quae supra dicta est, quae dixi sunt et ipsa, deinde in omni parte sunt, quia de quae uitae sit, quae eam uocetur;  eodem dicunt uero ita esse nimis, ut et aduersus.  sed tamen non solis dabitur, qua peruenientia parte ad eosdem rationem, ea dicunt, quod non ex his sunt, alter, sed in quo sanguine in aliquid, qui summa omnis sit, id ipsumque eius mundi natura sit, quae in quoque et in eo uitae, quidem adferat, qu
+----------------------------------------
+
+--- Sample 5 ---
+caesar ipsi, quod illud inuenio, quidem etiam dicetur. id quidem, quod faciam id quod tuus, curio uerum, quod faciebam, etiam ad mehercule, uelim: quod tibi quidem in me habere.
+scr.  
+cicero attico sal.
+scr.  
+cicero attico sal.
+scr. mense pto m. iun. d.
+cicero attico sal. romae cicero attico sal.
+cicero attico sal.
+scr. ad te   ipsum quid sit ab hoc mea in eo tempore nostro ius uideris. eius in quod mihi autem mihi quidem uescipere non sit.
+marcus
+de clod
+----------------------------------------
+
+Generated 5 samples successfully!
+
+Suggested Latin prompts to try:
+ 1. gallia est omnis divisa in partes tres
+ 2. arma virumque cano
+ 3. veni, vidi, vici
+ 4. in principio erat verbum
+ 5. senatus populusque romanus
+ 6. alea iacta est
+ 7. marcus tullius cicero
+ 8. imperator caesar
+ 9. res publica
+10. consul romanus
+
+To use a different prompt, modify the 'start' variable in /Users/willow/Documents/LatinLLM/sample_latin.py
+Or use: python3 sample_latin.py --start='your prompt here'
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/scriptor.py
+=== SCRIPTOR ===
+Interactive Latin Writing Assistant
+Commands:
+  '1' + Enter = Continue writing from where I left off
+  '2' + Enter = Exit
+  Any other text = Add your input and continue writing
+============================================================
+Loading model from out-latin/ckpt.pt
+number of parameters: 29.94M
+Model loaded successfully. Best validation loss: 3.9799
+
+Enter your initial prompt to start writing:
+> de gentibus germaniae.
+
+============================================================
+Generating text...
+============================================================
+  de re uero mens ad omnibus nobis uoluntatemque eiusdem uitati sunt, quod ipsum, sed tamen quia naturae iniectigium uidentur.  et haec quod quidem nascuntur in iis iniuria, ut neque in quidem praesent, quae etiam ipsum esse debent, sine quaerens esse non possunt, id, quod per se alexandest quod natura sunt.
+atque enim sunt omnium in hoc, quod in quibusdam, nullis aut frugumque locis in uno genere aeternum, ut eiusdem in quibusdam non ex parte uoluptati, quae in iis ratio ualet, quibus nihil adpetit, quod aut quod uitare, id dicendi alia sunt, quod inuis aut infirmitas ex eo, non est. nec enim, quod non a quod uero sit, quod adfert, si iudicetur, non intellegi. et illud, quoque uosum putas aeque uirtutis, quod mihi putas. si uos ita non uos quidistis, dixi, cum alia non possit, id est, qui ut non possumus, praestentiusmodi cappadocineritate. sed, quid erit, ut istiusmodumus, quid eiusmodi sunt in ciuitas, etiam siue in rebus uelitiora est et in quos siue alia in iuris est, quos de quoque in aliquid aetate uult.
+ad uero quem debeat, quoque quidem eorum, siue ex quae uitio est, delectatione eorum, quae in uitium uitetis iniuratio.  quae sunt dicunt; ut uitur in hicemperta sunt, qui sunt ex aliqua uiderint.
+sed id est illud sunt ne, neque uirtute eorum, quis etiam quibusque utilitate sunt, uirtutibus, quae ad omnis per quae uiuuntur, qui naturae sit, ut eadem ratio uerint, quae etiam, quaeque a quis et illa ipsa ea sunt, quae sunt, qui non solum natura, quicquam cum adficiet et uidere poterit.
+sed quidem, si qui si uit, quaeram, ut, qui in hominum uiteremus, et ipsa in quis uitiantur. quid est est, quidquid delectat et eam, si de ratione in omni partis uoluptatis, qua sint uoluptatem aliquae, quae erit aut, utrumque dicendi uitio, qui cum omne autem inuis, siue uelint in bonum uimis et, qua pernihil potuistis, quod uerit, ea dicendi, quod non ex his, sed tamen, sed in uerba et in aliquid rationem, quod ad euntur, quidem in ea peruenimus, natura, quae si quid eo uis, autem sic in partem de ratione, quae naturaere, ut, quidem etiam eximio utilitas, id, quaest sit id quod non esse, quod honesta, quae est, cum et uitiam ad ualetur uoluptas, quoque ad quidem in hoc modo esse uirtus, ut in his rebus rei quem quid est quidem ipsa ex his etiam et bonis, quae sententiae uelim, etiamsi quam ex contrariis, quid ea rei publicae, delectatione quae et uoluntati aut in omni adiectur, quae si est, ut est, quam nisi quisquam iuuantur, quoniam in quondam, non intellegunt, sed quae dicantur, non sunt, quod ipsa s
+
+------------------------------------------------------------
+What would you like to do next?
+  '1' = Continue writing
+  '2' = Exit
+  Or type your own text to add and continue
+> 
+
+Added your input: ''
+
+============================================================
+Generating text...
+============================================================
+ipsum esse, ut mihi, quem ad eaerea, quae quae non est, ut isti et ad dicas, sed etiam, qua dicimus, ut, ut aliqui potest, utilitati sunt, ea natura uitae.
+nunc, ut non fuerit, sed ut quamquam sine de me scio, uelim, non uelim, sed omnia, quin deinde dixi, sed mihi nihil erit, quae uelim, iudiciis, dicendum, ut eiusmodi, quod scire, quid haec sit ad mea quid facile sit, tu non dubium, si quae cum illud uerbis, quidquid sit, quod me mihi uolentur, si quid quid sit, adhibet, nihil tamen, quam ad me faciam.
+scr.u. romae  
+cicero attico sal.
+scr.
+caput xui.
+cicero mihi attico sal.
+scr. 
+cicero attico sal. id.
+cicero attico sal.
+scr.
+scr. a.  
+cicero attico sal.
+cicero attica sal.
+cicero attico sal.
+scr.
+c.
+cum ad me uenit enim me non modo, itaque etiam cicero cum aduenire dixissem. ut tus, idem nunc te uenit. et uale.
+si multum tibi, quae tua me ad te non mihi quam scribo. a uelim uidebam, quicquam non habebis, quam te te uelim, quam non possis, quod ad te, sed tamen mihi, quam me scripsi dolore. in tibi uenire mihi sum, tum scribo.
+scr. in m.u. in eo sal.
+cicero tibi mecum tibi ad te adsequet et etsi scripsisset ad te, quod scripsissem, quod te exspecto quod mihi uelim, ut tuo. tibi tibi mittor non possum.
+scr. romae a. 
+cicero attico sal.
+scr.
+de eodem die, etsi, qui noui tu tamen nou. noui, cum eo sis scribit tibi ex quibus a teque ea spero. quae attico uenit, quod quod tu non possis uelim, ut mihique tua erant in re tanta rei publicae, quae mihi uideaturum: tu tu me me, ut tuus ad litteras in meum re in tuas litteris litteris, quod id a. romae litterae erunt, ut ex eo postquam ad me etiam sine tuae tuas scripsi, quod erit, quod te scripsi. nonas mihi me ad me ex eo, quam exspectatione mihi non modo, ut mihi, tibi scribere, de tuis. quod mihi, quae te scirem mihi te scribi. et te uenio. sed in litteris litteras; in tua litteris ut litteris et cum ad te litteras litteris ante, nihil haberem. sin erunt; sed tibi de quum tuum amicum, quam, ut quod scribis, scripseris, non ut ab his litteris litteris, ut scribis, quae litteris a.u.
+scr.u. 
+cicero attico saluolare. quidem ego etiam me scripsissem scripseram. uidebam.
+cicero, iunam mihi quod ego non est, quid ero, quae tibi facirem. tu autem quidem tu, quum haec fecerunt, quod mihi iam quam ad meae dolorem tuum. sed tamen quamquam erit, etsi quam te scias. quid erat de eo; e
+
+------------------------------------------------------------
+What would you like to do next?
+  '1' = Continue writing
+  '2' = Exit
+  Or type your own text to add and continue
+> 2
+Vale! (Farewell!)
+Test 2:
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/train_latin.py
+🏛️  LatinLLM Training Script
+==================================================
+✅ Loaded system config from latin_training_config.json
+Device: cpu (float32)
+Model: 6 layers, 6 heads, 384 embedding dim
+Training: 4 batch size, 256 context length
+Max iterations: 10000
+Compilation: disabled
+Tokens per iteration: 4,096
+🚀 Initializing new model from scratch for Latin
+number of parameters: 29.94M
+num decayed parameter tensors: 26, with 30,031,872 parameters
+num non-decayed parameter tensors: 13, with 4,992 parameters
+using fused AdamW: False
+(Training)
+✅ Training completed!
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/sample_latin.py
+Loading model from out-latin/ckpt.pt
+number of parameters: 29.94M
+Model loaded successfully. Best validation loss: 3.5782
+Using GPT-2 tokenizer (tiktoken) for Latin text...
+Starting with prompt: 'caesar '
+
+Generating 5 samples with 200 tokens each:
+Temperature: 0.8, Top-k: 40
+================================================================================
+
+--- Sample 1 ---
+caesar ipsas causas dedit.  quibus ego nullo exemplo consilio, si uix de prouincia mouerat, adeo ut aliquid uellent ut pro consule sententia non fuerit.  nam, si de illo quidem consilio nostra defensionis, quae fere nostrae sunt, ut eum tibi placeret, eo quod tibi esse scire possent fieri.  itaque, ut scribis quid, quo facias, scis, ut uoles, et id quod tibi quod ipse mihi uideatur fieri.
+scr. in puteolanis u non. febr. a. 
+cicero attico sal.
+cum in castris meis litteris quibus de re publica scriberem, scripsi, quod ad me att
+----------------------------------------
+
+--- Sample 2 ---
+caesar  utique darii aliquid cogitare possent.  itaque nolo, ut dixi, non me esse caesarem, a quinto, quem ego essem, non esse illud, quod te non fero.
+praeterea scribis. tibi uellem, si quid in mea causa persequeretur, si uiuo uterem, quid ille sciret, mihi nihil facere uideretur. sed ut ualebat in litteris; id enim haec erant ad te uenire, quid erat, praetermitto. quamquam ea, quae scribebam, quae ea scriberem, in qua nihil fieri posset, tu quicquam a te litterari, te autem, quid cogitares, mihi non uenias
+----------------------------------------
+
+--- Sample 3 ---
+caesar ianuam uenit. deinde, cum quidem ei nomen esset, uel quod mouerat, et eorum, quos postea in re p. rutilium consulatum erat, in sicilia gessit: cuius si senatus consultum in senatu esset, uti potestate non esset, tamen, quam in illa re publica, quam uirtute, quam ut et senatus consultum censuisset et, uirtutibus iudicio, si quod imperasset, si ei qui nomen esset, ita seueritate in me esse, et cum ea re noluisses, ut ipsi eos sibi uidere arbitraretur.
+quod cum esset imperare, iam tamen pietas uideretur, ut ex illo qu
+----------------------------------------
+
+--- Sample 4 ---
+caesar ipsumque aduentu et adu militarem, qui in castris ad ueniret, ipsi exercitum in uiam recepit. ita eo magis se cum paucae cohortes suae causa conuenirent, quam sibi auspicatum non esset, quam maxime ad eam diem prouinciamque adduci iussit.
+consul nauibus cum prouincia praetoriis proficisciisceretur, et ne per eos dies alio tempore in ciuitates agerentur; cui praeterea ex his prouinciae, qui praesidio essent, praeterea ne quis eorum excederet imperium. eodem tempore, nauibus prouinciisque eo anno, legatos duarum populorum nom
+----------------------------------------
+
+--- Sample 5 ---
+caesar ipsa, quae nunc inuenio, uideo, cetera, ut illa quaeque dixisti, quae tu es, quae uelim, etsi gratia et uidero. uiii. kal. ianuarias ad quas uenerat quae mihi uidebatur esse tui; quem enim est quiddam, quod mea et amicitia et dignitate et gratia pateretur, ut omnes a me ad te pertinerent, eodem tempore et nostrae ciuitatis et grauitati uirtutis tui atque auctoritate etiam officio, summa uirtute et gratia, etiam si quid eorum consilii dignitati, ut omnia mihi quaeque mihi crediderunt, uehementer tecum s
+----------------------------------------
+
+Generated 5 samples successfully!
+
+Suggested Latin prompts to try:
+ 1. gallia est omnis divisa in partes tres
+ 2. arma virumque cano
+ 3. veni, vidi, vici
+ 4. in principio erat verbum
+ 5. senatus populusque romanus
+ 6. alea iacta est
+ 7. marcus tullius cicero
+ 8. imperator caesar
+ 9. res publica
+10. consul romanus
+
+To use a different prompt, modify the 'start' variable in /Users/willow/Documents/LatinLLM/sample_latin.py
+Or use: python3 sample_latin.py --start='your prompt here'
+Test 3:
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/detect_system.py
+=== LatinLLM System Detection ===
+
+Gathering system information...
+/Users/willow/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+System: macOS-15.5-arm64-arm-64bit
+Python: 3.9.6
+PyTorch: 2.7.1
+MPS Available: True
+Backend: MPS
+GPU Count: 1 (Apple Silicon integrated)
+  GPU 0: Apple arm GPU
+Mixed Precision Support:
+  Float16: True
+  BFloat16: False
+  TF32: False
+
+GPU Tests:
+  Tensor Operations: ✅
+  Mixed Precision: ✅
+  Memory Allocation: ✅
+
+✅ System detection complete!
+📄 Full report saved to: latin_training_config.json
+
+Recommended training configuration:
+  Device: mps
+  Backend: mps
+  Data Type: float16
+  Batch Size: 8
+  Block Size: 512
+  Compile Model: False
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/train_latin.py
+🏛️  LatinLLM Training Script
+==================================================
+✅ Loaded system config from latin_training_config.json
+Device: mps (float16)
+Model: 6 layers, 6 heads, 384 embedding dim
+Training: 8 batch size, 512 context length
+Max iterations: 25000
+Compilation: disabled
+Tokens per iteration: 16,384
+🚀 Initializing new model from scratch for Latin
+number of parameters: 29.94M
+num decayed parameter tensors: 26, with 30,130,176 parameters
+num non-decayed parameter tensors: 13, with 4,992 parameters
+using fused AdamW: False
+(Training)
+BREAK IN TRAINING TO TEST NEW FUNCTIONALITY OF sample_latin.py!
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/sample_latin.py
+✅ Loaded system config from latin_training_config.json
+Loading model from out-latin/ckpt.pt
+number of parameters: 29.94M
+Model loaded successfully. Best validation loss: 3.5416
+🏛️  Latin GPT Sampling Configuration:
+   Device: mps (float16)
+   Compilation: disabled
+Using GPT-2 tokenizer (tiktoken) for Latin text...
+Starting with prompt: 'caesar '
+
+Generating 5 samples with 200 tokens each:
+Temperature: 0.8, Top-k: 40
+================================================================================
+
+--- Sample 1 ---
+caesar 
+scr. in castris ad eum uergilii ui id. mai a.  
+cicero attico sal.
+caesar oppio uiii kal. sextilibus uenissem ad te litteras, quas antea misi, neque tibi hoc tempore neque tuo sim aut tuo aut amore aut meo iudicio depelli poteram. nunc de te uoluntatis dices, sic illi libenter ad te litteras mittas, quas acceperam, ut quam primum haberem. tuas litteras exspectabamus, quas librariis tibi commendas, quas tu esse intellexeras, nisi uenires, quae mihi uideris, etiam adferri uelim. etsi tibi esse uideor,
+----------------------------------------
+
+--- Sample 2 ---
+caesar ipsa mala etiamnum in usu, ut mox etiam uindicarentur.
+romae regnabatur auctoritas, eodem anno centesimo mensum, centum sexaginta, quibus in capite aemulatu fuit, quare argentiui pondo quinquaginta, decem pondo centum.
+etiamnum in aemilia uenit in sicilia iuniorum, quibus ludis oleum uocantur, ut auro uenerentur, et uasa argentea uel argentea uasa ab auroque ac dona pretia ex argento dicauit, sic pretiaque ornamenta auri uasa aereque atque argenti magnificae hs duxit.
+fecit et alia signis argenti bigis, big
+----------------------------------------
+
+--- Sample 3 ---
+caesar  est usus ab alexandro et alexandri in persico arro, alexandri magni celebritatem, quam pharnace in perside et oppido in ipsis ueteribus adiunctis macedones, item ad uelut antiochiam maiorem honorem uocant.  sed interpellantur et in aegypto, quam ob rem p. haec aegypti magni pueri aestimantur, ita ut persen crediderit, in asia regeretur.   pharnaces insulae in ea uenerendae, quae in arabia iuxta est, quod uersu puteolos fieri crediderunt, quando et in aegypto uenerunt.  dein pharnace quae sunt alexandri magni, ut uidet
+----------------------------------------
+
+--- Sample 4 ---
+caesar ipsius imperatoris. quippe cum eo septimius caesar et uiginti cohortibus subsequi iussus est et sex cohortibus, quas secum habuerat, in quibusdam cohortibus in aequo loco superiore in flumen rhenum oppidum adducturum, ueritus neque ullum militum copiarum adduci poterat. sed eiusdem legionis uacuae milites in castra mittuntur, neque hostium copiae suo uenerant neque munitionibus ulla potuerunt.
+proelio cum periculo castra ad castra mouissent, a castris hostium defenduntur. interim ab sexto cornu intermissis, aciem instruunt. quem ubi legionibus circumuentis in unum locum conferunt, quae
+----------------------------------------
+
+--- Sample 5 ---
+caesar ipsa quam proelium uideretur, nunc quidem in tanta ciuitate iactabant in tanta clade iam mollitioresque et in re publica uersabantur.  qui ob rem pauci animo ac uoluntate uere probabant, adfectisque uiuebantur eo tempore, quo uictos a pompeio, quod eos qui contra gallos fuissent, quam uellet caesaris manubiae daret, ipsi uacuos ad caesarem deduxerunt. qua in re nihil aliud quam ad eos pertinere atque omnia perturbare adduci ac ueteres uiri bellumque gerebant, ut ad eos missis a caesare missisque ab se non amplius milia passuum ab
+----------------------------------------
+
+Generated 5 samples successfully!
+
+Suggested Latin prompts to try:
+ 1. gallia est omnis divisa in partes tres
+ 2. arma virumque cano
+ 3. veni, vidi, vici
+ 4. in principio erat verbum
+ 5. senatus populusque romanus
+ 6. alea iacta est
+ 7. marcus tullius cicero
+ 8. imperator caesar
+ 9. res publica
+10. consul romanus
+
+To use a different prompt, modify the 'start' variable in /Users/willow/Documents/LatinLLM/sample_latin.py
+Or use: python3 sample_latin.py --start='your prompt here'
+(More Training)
+✅ Training completed!
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/sample_latin.py
+✅ Loaded system config from latin_training_config.json
+Loading model from out-latin/ckpt.pt
+number of parameters: 29.94M
+Model loaded successfully. Best validation loss: 3.6226
+🏛️  Latin GPT Sampling Configuration:
+   Device: mps (float16)
+   Compilation: disabled
+Using tiktoken tokenizer for Latin text...
+Starting with prompt: 'caesar '
+
+Generating 5 samples with 200 tokens each:
+Temperature: 0.8, Top-k: 40
+================================================================================
+
+--- Sample 1 ---
+caesar  est mihi uenit ad ipsam mentem. ille autem, ut me uultum mearum hominem putat esse, ita me dixit ut me mihi magis uti ueri simile quam illius uoluntatis, quam ille amicus sibi adsumeret.
+nos autem a te diligamur ut sciamus, aut me amas aut etiam quod fieri non posset, eo magis quod uideatur non meo nomine, quam quod non dicam, id est in laudando; quod enim non possum, sed ita maius esse quam nescio quid in eo laudabile sit, quod probaret.
+xxuii   quid, si tibi uidetur, ne in eo quidem, qui me non diligit, mecum
+----------------------------------------
+
+--- Sample 2 ---
+caesar ipsa inter se certa et adhortatio ex senatus consulto fiebat. ita summo uiro auctore et auctoritatis iudicium, ut omnes illi, in quibus hae sunt gestae, adiunctae sint, in unius hominis controuersia, in qua tamen necesse esset, non modo nulla re alia in sicilia neque maximis contentionibus neque in senatu aut in senatu et in amicitiam uenire; se, si id non licuisset, facere senatum iudicemque ab reoque facturos neque senatui populo romano placere, senatus consultum factum est, ut omnes adirent c. ualerius laeuinus ac de re publica diceret, qui cum eo exercitu in prouinciam prof
+----------------------------------------
+
+--- Sample 3 ---
+caesar 
+cicero attico sal.
+rome, before 
+quod mihi uidetur optatum, ut tibi quam primum constituam, quod mihi, quod uidebatur, quem ad modum scribam, non egebam, ut tuas in epirum auere possem, quod tibi scribis te commendo. quod scribis te arbitror te uidere, neque solum isto summo studio adductus essem, sed etiam, quod te rogo, debeo.
+quotiens ad te litteras tanti inueneris, ne te uidere sperare quicquam posse, ut tu quam primum in asia, deinde te ipsum, ut spero, uidere. ego autem, quoniam tu quidem et te amari et u
+----------------------------------------
+
+--- Sample 4 ---
+caesar ipsa pugnae tempestatis est in ueteribus rebus, ut ita gesta uiderentur, quoad maxima sponte ponte egressi hostes potuerunt. quibus aduentu addito consilio equites uenirent, atque omnis multitudo hostium, qui in conspectu essent, relictis equitibus, qui primi in castris casum erant, cum primis equitibus profligati curionem ad se uenissent, adferebantur. his rebus exspectatione facta nostrorum milia passuum uiuum uii castra oppugnare coeperunt.
+his rebus gestis caesar, quae posita erant naues, a c. trebonio legato, qui proximum per aequos hostium ceciderant, eodem pra
+----------------------------------------
+
+--- Sample 5 ---
+caesar 
+praeterea sunt uentorum et uitia inuisa. non enim semper ualet uis, utique uisus, cum quibusdam in rebus paucis. itaque adhibere possim, nisi forte accidisset in uestigio mari, immo omnia in unum locum conuertere, ne qua in re, quod de uictoria scribi possit, nihil metuant, ne quid forte ipsis, quid sperares, nec quidquam possumus.
+quod de pompei morte dixi, quid de pompei sensu dicam, quid a crassi filii, quid de re de quid sentiam. itaque iudex ipse dixeram, ut pueri, ut eius frugi, quem t
+----------------------------------------
+
+Generated 5 samples successfully!
+
+Suggested Latin prompts to try:
+ 1. gallia est omnis divisa in partes tres
+ 2. arma virumque cano
+ 3. veni, vidi, vici
+ 4. in principio erat verbum
+ 5. senatus populusque romanus
+ 6. alea iacta est
+ 7. marcus tullius cicero
+ 8. imperator caesar
+ 9. res publica
+10. consul romanus
+
+To use a different prompt, modify the 'start' variable in /Users/willow/Documents/LatinLLM/sample_latin.py
+Or use: python3 sample_latin.py --start='your prompt here'
+willow@Willows-MacBook-Pro LatinLLM % python3 sample_latin.py --start='gallia est omnis diuisa in partes tres'
+✅ Loaded system config from latin_training_config.json
+Loading model from out-latin/ckpt.pt
+number of parameters: 29.94M
+Model loaded successfully. Best validation loss: 3.6226
+🏛️  Latin GPT Sampling Configuration:
+   Device: mps (float16)
+   Compilation: disabled
+Using tiktoken tokenizer for Latin text...
+Starting with prompt: 'gallia est omnis diuisa in partes tres'
+
+Generating 5 samples with 200 tokens each:
+Temperature: 0.8, Top-k: 40
+================================================================================
+
+--- Sample 1 ---
+gallia est omnis diuisa in partes tres partes, quarum altera rheno nominata sit.
+sed aliter a romanis certum est, ut dixit, auctoritas gallorum, aliquotiens pugnae inlata est: aeque uirtutis auctoritas dedit, ut titulum, cicero, cornelius uictor, casuque in eam galliam, uulcani, et l. fului, quae nunc pudicitia est, asculani, quam uocant trans rhenum, ipsumque rhenum transiit; et cum his gallos, alanum, gallorum, alanum, gallosque galliae, quos ipsos gallosque transierunt, quosque adhuc bellum paruissent, in mesopotamia se recepit.
+hoc finitimis hispania
+----------------------------------------
+
+--- Sample 2 ---
+gallia est omnis diuisa in partes tres; in altero aere sunt ueluti cornu in ipso in ipso penetrales; alter ad eas in medium coxas, quae obiecta in latus, quam ob rem habent uenatu quinque milia sunt, utriusque sexus in ea parte, quae uenisset, adsuetis equis, in quam in latera habuerat, ita adeo celeriter uenienti in aduersa pugna coepta est ut quos in dextrum cornu mitti possent quos in dextro cornu erat, sinistrum peltiberi non possent. haec equites, cum iam in dextro cornu erant, laeuo latere dextrum inclinauerant, sinistrum dextrum peditum ac dextrum romanum
+----------------------------------------
+
+--- Sample 3 ---
+gallia est omnis diuisa in partes tres et quattuor milia armatorum, in quibus unum pagis adeo iungendis, ut et coloniis uix adscriptorum ullam uacationem nouam habeat quam ut alae ciuitates in eas prouincias tradat, et ad extremum finem habeat in asiam quam in europa. haec siue quae loca dicam, ad antiochum pertinent, quod quae cis taurum montem erat adgressus; siue quae regionis, quae ad montemergouenumque attinet, exspectabimus; siue quae regioni angustiae sunt, adiciebimus, quod ad finem uergit quaeque iam pertinent ad finem uergentiare possit.
+ab eo ad citeriorem partem galliae est
+----------------------------------------
+
+--- Sample 4 ---
+gallia est omnis diuisa in partes tres uallares; ad quos utroque praesidio circumducta est, haud secus quam uicti atque ex aliqua parte hostes uictos, uictos esse.
+atque haec pari certamine, ut fit, cum praeter spem pacis uictoriae praemium esset, et c. papirius tribunus plebi ad populum ferociter ferendam patefecit et, ut ipse ager, per eum uolturcius cum magno agmine adortus est, ubi e castris hostium fines adorti sunt, in ipsum extemplo, quia muros obicerentur, cum in maiore pugna, inermi cedentes in fugam se receperunt. ad uictorem duorum exercituum fuga compulsi ad duo
+----------------------------------------
+
+--- Sample 5 ---
+gallia est omnis diuisa in partes tres acies simul ceterique alia alia, qua m. marcellus dicitur, eumque in captiuorum potestas non uidisse. ea p. sempronius consul, quo in hispaniam erat, ab ti. sempronio longo, cui post p. sempronio tuditano, l. iunio bruto, cui successerat obuiam eius quaestor; obuiam ualetudinem quoque cum legationibus suis agere. ei praetor praetor intercessit c. calpurnius. ii creati m. baebius cn. octauius l. scribonius, cum terentius nuntiaret, quaestionibus quaestionibus magistratus inissent. et praetores quinque et triginta naues quae
+----------------------------------------
+
+Generated 5 samples successfully!
+
+Suggested Latin prompts to try:
+ 1. gallia est omnis diuisa in partes tres
+ 2. arma uirumque cano
+ 3. ueni, uidi, uici
+ 4. in principio erat uerbum
+ 5. senatus populusque romanus
+ 6. alea iacta est
+ 7. marcus tullius cicero
+ 8. imperator caesar
+ 9. res publica
+10. consul romanus
+
+To use a different prompt, modify the 'start' variable in /Users/willow/Documents/LatinLLM/sample_latin.py
+Or use: python3 sample_latin.py --start='your prompt here'
+willow@Willows-MacBook-Pro LatinLLM % python3 sample_latin.py --start=''
+✅ Loaded system config from latin_training_config.json
+Loading model from out-latin/ckpt.pt
+number of parameters: 29.94M
+Model loaded successfully. Best validation loss: 3.6226
+🏛️  Latin GPT Sampling Configuration:
+   Device: mps (float16)
+   Compilation: disabled
+Using tiktoken tokenizer for Latin text...
+Generating from empty prompt...
+
+Generating 5 samples with 200 tokens each:
+Temperature: 0.8, Top-k: 40
+================================================================================
+
+--- Sample 1 ---
+ ipsumque ait, quod eius opera capta est, etiam in oculis habentem, ueluti coronam, quae in oculis quoque inest, quam periculi infunditur.  quare cum uulnere peragratur, quamdiu fuit cum uiuere, quoniam statim, ubi est in aliqua parte, periculum est uerticulum: idem est, circumitionem caua aut relicturus.
+itemque, si quis eadem est, quae in oculis protinus ad eandem noctem peruenit, periculum est.  inter initia uero ratio curationis eadem est, si quis in eo, quod propositum uelit, uel euocat. si id factum est, quod in priore
+----------------------------------------
+
+--- Sample 2 ---
+  eo enim auctore etiam illud uerius dictum est, quo non modo uerbis, sed ne graecorum quidem, quae latine loquebantur.  non enim uerba latine "cum multis" inquit "dicturum est, quod maxime in eo uerbo latine dicitur. an ego autem, ut quisque auctoritatem habuit, dixi, cum de re publica loqueretur, ut uerba illa sese ostenderet neque dicturum, sed id ipsum, qui faceret, intellegeret, quod uerba illius posceret, non audiret?"
+xxxii  nam cum de sententia ita sic scripsisset: "quod pompeius" inquit "pompeius apud pleb
+----------------------------------------
+
+--- Sample 3 ---
+ ipsum non, ut inueniretur, quamuis sciret, quod et illa faceret, non habenda esset, sed aperteque dixit "hoc", inquit, "me quoque non didicisse, quod mea opinio est, uereri, ne quid diceret, inueniri atque non latine, sed quod contra diceret, uerba latinae uideretur esse.
+atque hoc ipsum scaurus, non satis callide in libro, non, sed non perite, ut in uerba modo dixit, ut scias, uerba haec ipsa sunt:
+"quis autem uult, dum uult oratorem multis modis, non desiderat?
+quis umquam, si ignorat, non, nisi m
+----------------------------------------
+
+--- Sample 4 ---
+ ipsum quod nunc mihi ignoscetur a te ipso dicendi, nonne ullum esse uideatur et ueritatis eorum utrumque; sed quod praestare uereor, ne, si uera uideam, si modo uideam, quid iam dicam, intellegam posse, quod mihi in mentem uenit, ut mea sponte facerem, uobis uidesne id esse facturum, ut mihi uideatur, ut non dubitemus, quin uobis non modo mihi, uerum etiam de me merito de me loqui possitis.
+dicam, puto, me sic hoc dicisse: mihi uideor, ne te desideretis; si enim meis uitare uideretur
+----------------------------------------
+
+--- Sample 5 ---
+ ipsis praecipue etiam nunc manibus, quae in summa patrimonii sui nomine continebantur, sic in publicis priuatisque actis auctoribus et praeterquam uiuere, quod ad sacrosanctum sit, quo non uiuere, non sua uirtute, sed humanitate iam deuoue, euentu se esse, nec quicquam sibi imperii mores suosque passuros inuadere ac proelium, sic neque suos quisquam opus esse.
+aduersus hannibalem cum alia tum inuenisset, nouum inopo speciem adductus, cum inuictum pugnae, tum in acie ancipiti proelium est. et romani cum hostibus inclus
+----------------------------------------
+
+Generated 5 samples successfully!
+
+Suggested Latin prompts to try:
+ 1. gallia est omnis diuisa in partes tres
+ 2. arma uirumque cano
+ 3. ueni, uidi, uici
+ 4. in principio erat uerbum
+ 5. senatus populusque romanus
+ 6. alea iacta est
+ 7. marcus tullius cicero
+ 8. imperator caesar
+ 9. res publica
+10. consul romanus
+
+To use a different prompt, modify the 'start' variable in /Users/willow/Documents/LatinLLM/sample_latin.py
+Or use: python3 sample_latin.py --start='your prompt here'
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/scriptor.py
+✅ Loaded system config from latin_training_config.json
+======================================================================
+    🏛️  SCRIPTOR - Interactive Latin Writing Assistant  🏛️
+======================================================================
+Commands:
+  '1' + Enter = Continue writing from where I left off
+  '2' + Enter = Exit
+  Any other text = Add your input and continue writing
+======================================================================
+Loading model from out-latin/ckpt.pt
+number of parameters: 29.94M
+Model loaded successfully. Best validation loss: 3.6226
+🏛️  Latin Scriptor Configuration:
+   Device: mps (float16)
+   Compilation: disabled
+Using tiktoken tokenizer for Latin text...
+
+Enter your initial prompt to start writing:
+> de gentibus occidentalibus.
+
+======================================================================
+scribens... (Generation #1)
+======================================================================
+ nonne, ut sit aliqua dicenda nostra, cuiuslibet aetatis exempla. nos enim, si quando inciderit, non modo inuenimus, sed etiam in nobis pax uidenda est, ut sic ferarum et ingenti cotidie, quae autem uenerant, aut quomodo illis sunt, quae, quae coeperunt saepe per se non uideri? itaque et uerum et de uobis auditis consulere, cum ea permissa sint, quae deierimus, aut, si quis uiderit, nos uicisse uos ad caelum ueneritis, uerum etiam si boni sitis, non erubescitis. et quod uobis placet, uos uideo futurum. hoc erit, si uos uidetis, uestrae uitium estis, quae nos ueremur: si uos aut uerumus aut uerba deserueritis, pro uobis autem, pro uobis quibus uos uestra sunt, ducite. an uos uestri consilii estis? si haec sunt poenam, quia uos uestra causa sustuleritis, iam uestra accusantem defendere, non ut sperabitis, uerum utrum uos an deserta hostium praeda sint, siciliam sardiniam, africam, sardiniam, africamque africam, africam sardiniam, africam, africam, sardiniam, africam, africam africam hispaniam africam, africam? africam italia, quae non hispania? quid ad? tempus ipse in africa sit, cum uelit, aut africa quidam uos africanias? africa, patria, carthaginiensium, tot milia? quibus africa maior quam uictoria fuit? quid? carthaginiensibus quid? quod quae uictoria? quid? quod illuc abstuli, quid illi praetermissum est, quorum sicilia tot maria terrarumque omnibus terris euerti non debetis? uestra, non praesidio quodam modo spoliis firmissima est; qui, cum terra omnibus uestris urbibus, urbibus, omnis sicilia denique maritimis ora marique terrarumque, quod totum in se coniungitur, tot tanti terrarum orbis terrarum imperii romani nominisque sit, cuncta cum pace coniuncta uix in hoc ipso uobis orbe nostro iungitur?
+'non omnis uictoriae consilium est, romani imperio, uestrorum imperatorum, uestrorumque imperatorum, quorum est uobis potestas, quorum imperium populi romani uestrum non dedit, uestrorum maiores nostri debent esse uoluntatis. quid enim non uiolauit? quid aut non illi praesidio est quam uestram prouinciam obtinebat? africam tu, quam uos ducem et praeterea urbem, patres conscripti, quidnam id ad uos fecistis? uos quid quaeritis? nunc aut mihi aut uos de his rebus quid agatis aut uestris aut quid praetermittemus, quid per te scelus aliqua ex parte ad iocandum uestrum, quid ad ceteros euentus accedat? potestisne ut, cum praesertim his urbibus siciliam aut metuendam putaueritis?
+'quid enim potest aliud in sicilia sit, ut in ea oppida, in qua ipsi carthaginiensium fuerint, siculorum ciuitatibus oppidisque praesidia sint in sicilia, et uos ita iustitiae iure defendere ex foedere acceperitis? quid est quod ne in africa, sicilia, sicilia, sicilia, sardinia, sicilia, maria sardinia, hispania nominatione ora sit. uos tantum quantum interest? quid, si uos uidetis, nihil interest, legemus? sin id quod ad uos istius uerba delectat, ita mittitur ut neque uos id egisse aut istum neque uos eos quemquam neque uestigium neque alium quemquam reperiri uelitis.
+atque ego illud uobis ius de istius ciuitatis ratione dicendum puto, quod ad uos priuatim aut ad uestram gloriam peruenisse demonstro. nam ut uestra uos hoc modo factum uelim, iudices, uereor ne quid in sicilia in sicilia sit, uelim hoc ipso loco dicere, ut istum ad uestros quos ad modum ad commune fortunarum communis adiungere possitis, neque ad uos ad sociorum atque amicorum siculos, neque ad uos ad amicos parandas calamitates eius adiuuare potuerimus.
+uerum est hoc iudicium, huius modi utendum sit hoc iudiciis, ut iam cum ciuibus romanis adiutores fuerint, si uestiges uosmet ipsos in prouincia uestrae ciuitatis uelitis, etiam si uobis hodie in sicilia fuerit, quemadmodum illis uobis romae restatis: nunc uero eos homines atque inimicos nostros, id quod fecistis, ad uos inimicitias nostras reuertisse, non sine causa quisquam in illorum numero fuerit quod ex sicilia decesserit, sed eo nomine nomini quod uos tantum inimicissimum est, rettulisse in eorum siculis quod ad meum instituistis, non arbitror eos qui inimicissimi sunt, quorum auctoritate uestra redimantur, inimicorumque suorum suppliciis uti uestrorum exponam. uerrem, quod dico, siculi, mihi credite, uos eos inimicissimos, ut inimicos tuos esse uelitis.
+nam nunc te omnium rerum, q. fulcinium, iudicia, omnis accusatorum infirmitasque est, quorum maiestate apud omnis haec uobis non solum iudicia, sed etiam uos auctores uestros, quorum testimoniis iudicia de causa fecistis, si quod sibi istiusdem auctoritatibus uobis esset, praesertim quum adiutores fuistis, non ad uestram, si quando id accidisset, non adissent, quod tantas res tantae calamitatis aures accessio ac templis maximis monumentisque uidebantur esse, ut uestigia teneatur.
+quamobrem non modo amentia uestra, uerum etiam sanctitas quaeritur, sed ne sic quidem ea quae sunt uel digna uestro et perpetua iure et iure esse uideantur. quamobrem, iudices, uobis autem quemadmodum in hoc loco pauca sunt et quae non ad uos sunt pertinebunt, aut ea quae ad uos pertinebunt, quod uobis non modo ut illis quae inutilia sunt sed ne ceteros quidem ad uos pertinebunt, sed ne in aliis quidem omnibus quicquam arbitror facere possumus.
+
+
+----------------------------------------------------------------------
+quod vis deinde?
+  '1' = Continue writing
+  '2' = Exit
+  Or type your own text to add and continue
+> 2
+
+uale! (Farewell!)
+Test 4:
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/train_latin.py
+🏛️  LatinLLM Training Script
+==================================================
+✅ Loaded system config from latin_training_config.json
+✅ Loaded custom Latin tokenizer metadata
+   Vocabulary size: 8000
+   Tokenizer type: ByteLevelBPE
+   Training tokens: 3,919,490
+   Validation tokens: 426,164
+Device: mps (float16)
+Model: 6 layers, 6 heads, 384 embedding dim
+Training: 8 batch size, 512 context length
+Max iterations: 35000
+Compilation: disabled
+Tokens per iteration: 16,384
+🚀 Initializing new model from scratch for Latin
+number of parameters: 13.69M
+num decayed parameter tensors: 26, with 13,885,440 parameters
+num non-decayed parameter tensors: 13, with 4,992 parameters
+using fused AdamW: False
+(Training)
+(Interupted Training Because I was Concerned about Loss)
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/sample_latin.py
+✅ Loaded system config from latin_training_config.json
+Loading model from out-latin/ckpt.pt
+number of parameters: 13.69M
+Model loaded successfully. Best validation loss: 5.8842
+🏛️  Latin GPT Sampling Configuration:
+   Device: mps (float16)
+   Compilation: disabled
+✅ Loading custom Latin tokenizer
+   Vocabulary size: 8000
+   Tokenizer type: ByteLevelBPE
+Starting with prompt: 'caesar '
+
+Generating 5 samples with 200 tokens each:
+Temperature: 0.8, Top-k: 40
+================================================================================
+
+--- Sample 1 ---
+caesar 
+cicero attico sal.
+caesar imp. d. ciceroni imp.
+cum mihi balbo nuntiatum esset in hispaniam cum legionibus ire et legionibus magnam manum esse et in prouinciam celerius quam dimicarem posse, nuntio misso, ut sibi quoque uictoriae ueniam daret. itaque postero die quam posset praemissus est dies circiter iiii. ab urbe ad urbem uersus qui flumen traiecerat quo constiterat. quod ubi pompeius cognito uibullium praemisso c. uolusenum cum legione quam apameam iusserat promisit. accessit eodem tempore litterae a c. ualerio legato.
+recepto interposita colonis et campaniae bruttium agrum, uolturni conpluresque sunt oppidanorum et oppidi incolarum quae ad hispaniam tendebant, perueniunt. ibi certior factus caesarianus a municipiorum suorum causa, remota esse clam noctu contionem apud milites, qui ad oppidum irent, conuenisset, ut de prouinciis exponerent; nam aliter quidem sese neque portas consuli praeclusuros, cum in castra uenirent,
+----------------------------------------
+
+--- Sample 2 ---
+caesar 
+de natura deorum et hominum et deorum et hominum et hominum et animorumque omnium, quae non sunt, sunt igitur admirabilissima, necesse est aut ad rationem omnia referenda, eaque, ut quaeque gignantur, ad mentis pleni et ad aeternitatem apti, ut mihi uidentur, non ut sint illa, quae sunt apud nos, ualere, neque sunt enim illa, quae uoltrica, sed natura est et perfecta ratio, sic eam stoici non solum, quod dicat, sed etiam diligunt.
+quam ob rem, si qui potest aliter, ueri est uerissimum; sin autem, id intellegi potest, ut, cum in selectione tum euenerit ut ea, quae eueniant, conficiatur, nihil est praeterea in eo, quod positum est, in eo, quod expetendum sit, in quo peccetur, omne quidem est peccatum, cum sua cuiusque uita, pro quibus aut expetenda aut petenda sit aut expetenda. quod si ita est, ut idem,
+----------------------------------------
+
+--- Sample 3 ---
+caesar  ueteranus, qui a cluuio legato euocatus ab eo fuerat, ut sibi imperatum esset, dixit ei se missum a caesare esse, quoniam bellum contra eum uellent, recipius ad eum romam uenit.  et ab eo quidem tempore discessit.  a. d. uiii kal. martias naues abduxit sine uento secundo eodemque uento secundo rhodiae profligata est. quod ubi accidit, lembum uenit atque aegre correxit.  pompeius cum esset certior factus. de uentidete re gesta aristoteles et curione et se de aduersariis ad suos misit. qui cum in portum confugissent, in menapiosolycum profugerunt.  cognito consilio eius caesar c. triarius eques romanus cum m. antoni propraetoribus diebus duabus de causis ad scipionem reiectam defecerat atque ibi parte militum spoliatus eam nauem conscendit, quae erat applicatam, in his locis in litore, qui appellatur lilybaeum, adplicata
+----------------------------------------
+
+--- Sample 4 ---
+caesar  'atqui dolor est, quae uis est, sistit sanguinem.  at enim qui sanguinem mitti, non potest; neque bibere, aquam bibere, uinum; sed id, quod supra consuetudinem inmodicam est, ambulare, multaque aqua non exerceri.  at si nihilo minus uigilat, tamen non tamen uomitu eius, post solutionem frigidam aquam frigidam debet, interdum etiam in solio sudorem mittendus est.  si frigidum corpus est, dolens calor cum sit expeditius, quam si gracilia sunt, inbecillum, si magis id ipsum ex toto dolor quam ex toto dolor est. si non continens est, admouendae aluum sunt: si id non est, frigidum est. ubi uero sudor incipit, ne in lectionem quidem continuat, multa calida aqua tepida fouendus est; si corpus et calefaciat, dolet, frigidum bibendumque si non est, per se, ex solio quam calido sud
+----------------------------------------
+
+--- Sample 5 ---
+caesar  sic et graeci auctores in bello punico secundo proelio deuicerunt.
+scipio interim dum in macedoniam perueniat, cariae naues  et  auertit; nec tamen ea tempestate instantis species cum scipione qui ante pugnam ad nauale spectaculum armatus eminus processit.  et tunc quidem in alto iactanti tumulos transiliuit,  tantaque uentis dimicationis dimicatio fuit ut, cum ab austro peteretur. sed id maxime tentauit quod in sinistrum cornu elephans pergit, dextram in sinistrum cornu suo circumdedit.  diu inter prima signa romanis insignia proelia pugnantibus romanis, cum rhodiis romanis, cum in aduersum cliuum cornu dimicaretur, et a pyrenaeum in cornu aduersus scipionem pugnaturus.  atilius cum elephanti confertissimum cuspide pugnare pugnabat.  et crispinus, cum se acerrimus pugnaturum cerneret, ab ungulis glomildo ictus erupit, et a lateribus lapp
+----------------------------------------
+
+Generated 5 samples successfully!
+
+Suggested Latin prompts to try:
+ 1. gallia est omnis diuisa in partes tres
+ 2. arma uirumque cano
+ 3. ueni, uidi, uici
+ 4. in principio erat uerbum
+ 5. senatus populusque romanus
+ 6. alea iacta est
+ 7. marcus tullius cicero
+ 8. imperator caesar
+ 9. res publica
+10. consul romanus
+
+To use a different prompt, modify the 'start' variable in /Users/willow/Documents/LatinLLM/sample_latin.py
+Or use: python3 sample_latin.py --start='your prompt here'
+Test 5: (First test w/ updated model.py!)
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/train_latin.py
+🏛️  LatinLLM Training Script
+==================================================
+✅ Loaded system config from latin_training_config.json
+✅ Loaded custom Latin tokenizer metadata
+   Vocabulary size: 8000
+   Tokenizer type: ByteLevelBPE
+   Training tokens: 3,919,490
+   Validation tokens: 426,164
+Device: mps (float16)
+Model: 6 layers, 6 heads, 384 embedding dim
+Normalization: RMSNorm
+Training: 8 batch size, 512 context length
+Max iterations: 50000
+Compilation: disabled
+Tokens per iteration: 16,384
+‼️ Initializing new model ex nihilo
+number of parameters: 13.69M
+num decayed parameter tensors: 26, with 13,885,440 parameters
+num non-decayed parameter tensors: 13, with 4,992 parameters
+using fused AdamW: False
+
+VERSION 1:
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/train_latin.py
+🏛️  LatinLLM Training Script
+==================================================
+✅ Loaded system config from latin_training_config.json
+✅ Loaded custom Latin tokenizer metadata
+   Vocabulary size: 16000
+   Tokenizer type: ByteLevelBPE
+   Training tokens: 2,241,593
+   Validation tokens: 257,022
+Device: mps (float16)
+Model: 8 layers, 8 heads, 512 embedding dim
+Normalization: RMSNorm
+Training: 4 batch size, 512 context length
+Max iterations: 33000
+Compilation: disabled
+Tokens per iteration: 12,288
+‼️ Initializing new model ex nihilo
+number of parameters: 33.37M
+num decayed parameter tensors: 34, with 33,619,968 parameters
+num non-decayed parameter tensors: 17, with 8,704 parameters
+using fused AdamW: False
+
+🏛️  Starting training for Latin corpus...
+📊 Model parameters: 33.6M
+
+===New Data-Set===
+VERSION 1.1:
+Test 1:
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/train_latin.py
+🏛️  LatinLLM Training Script
+==================================================
+✅ Loaded system config from latin_training_config.json
+✅ Loaded custom Latin tokenizer metadata
+   Vocabulary size: 16000
+   Tokenizer type: ByteLevelBPE
+   Training tokens: 13,258,716
+   Validation tokens: 1,459,467
+Device: mps (float16)
+Model: 8 layers, 8 heads, 512 embedding dim
+Normalization: RMSNorm
+Training: 4 batch size, 512 context length
+Max iterations: 33000
+Compilation: disabled
+Tokens per iteration: 12,288
+‼️ Initializing new model ex nihilo
+number of parameters: 33.37M
+num decayed parameter tensors: 34, with 33,619,968 parameters
+num non-decayed parameter tensors: 17, with 8,704 parameters
+using fused AdamW: False
+(Mid-stream I changed max iterations to 75k because speed was good and I wanted to get good val loss on my laptop before I push to Github. val loss to beat before I push: 3.6226, though once I run this on something other than a Macbook Pro I'm gonna aim for ~1 optimally.)
+(Cut off @ tep 34500: train loss 2.4882, val loss 5.4894 because worried about overfitting.)
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/sample_latin.py
+✅ Loaded system config from latin_training_config.json
+Loading model from out-latin/ckpt.pt
+number of parameters: 33.37M
+Model loaded successfully. Best validation loss: 5.4894
+🏛️  Latin GPT Sampling Configuration:
+   Device: mps (float16)
+   Compilation: disabled
+✅ Loading custom Latin tokenizer
+   Vocabulary size: 16000
+   Tokenizer type: ByteLevelBPE
+Starting with prompt: 'caesar '
+
+Generating 5 samples with 200 tokens each:
+Temperature: 0.8, Top-k: 40
+================================================================================
+
+--- Sample 1 ---
+caesar uda et gela, et alia quae sunt in montibus, et sunt in montibus ita montuosa, ut non possit introire, nec ultra eam transuolare non possis. sed in hoc sic statuunt, ut ipsi, sic in aliis locis ab eis, et contra eos, et quomodo possint, contra eos pugnent, et contra eos, et contra eos auxilium eis, et contra eos agant. et cum inueneris ad locum, te constitues eos, et mittes eos, et mittes eos eis, et mitte tu, ut mittant ea, et mittant tibi in terram. et cum venerit, haec omnia recipies, et mittes ad te, et mittes eos ad me. et mitte tibi ad eum, qui dicit ei dominus: "noli alexander, mitte te in terram ipsius, ut teneas de tuis, et mittas ad te omnem terram nostram ciuitatem. et cum habebis te ad te et mitte tibi omnia. et mitte
+----------------------------------------
+
+--- Sample 2 ---
+caesar uda vel coba una in terra sunt, nec non et pecus, nec lignum, nec lignum, nec lignum, nec lignum, nec lignum, nec caeteras aliquid. sunt etiam qui in ipso sunt, vel habent aliquid, vel habent homines vel equos, vel etiam in ipso corpore; seu quantum possunt, vel habent eos. et in magno sunt numero vel minus, vel minus, vel minus, vel minus, vel minus, vel minus, vel minus, vel magis, vel magis. sed si exteros inuenerit, non est a quoquam. nulla enim pars in aliquo momenti est. item vero quilibet sine causa non est, nec aliquid debet alicui dare, nisi sit sibi consilium vel facere. idem faciunt: nunquam enim de aliquo homine loqui volumus. item si in uno vel altero non ponuntur, et sic habentur in altero: quia sunt semper in altero, nec in altero quodlibet eorum officium superius dictum est. item si plures sint, nunquam debent de pluribus praedicari, vel si
+----------------------------------------
+
+--- Sample 3 ---
+caesar uda ii, in quibus erant ornati atque amoeni ad salices et ad salices et ad salices et ad salices et ad salices et ad epulas fiant, ad atque ita prorsum ad bibendum ex his commentariis asperi. iii. in his libris, quae meminimus, verba haec sunt: pasa gar praxis hode echei; aute eph'hautes prattomene oute kale oute aischra; hoion ho nyn hemeis poioumen, e pinein e aidein e dialegesthai. ouk esti touton auto kath'hauto kalon ouden, all'en tei prachthei, toiouton apebe; kalos men gar prattomenon kai orthos kalon gignetai, me orthos de aischron; houto de kai to eran, kai ho eros ou pas estin kalos oude axios enkomiazesthai, all'ho kalos
+----------------------------------------
+
+--- Sample 4 ---
+caesar erebinthi, cum hoc et cerenum. at in hoc genere est a nobis inter ungues et ceruos. sunt et in his, quae circa nos manserunt, in illis vero, quae sunt in illis, quae possunt habere genera, quae tamen ita sunt: lacertis pedibus, quod sint in iis, ut in illo, tricliniis, unguibus, luto, quod in reliquis quadripedum, ut in crassiore ligno, cauda, colore quadrata et crura, quibus longissimis pedibus, ut in cauda, brachiis, ut testudo, cruribus, cauda longissimis, cauda longissimis, cauda longissimis, ad digitos longiorem ponentur. sed inter haec maxime sunt cornua versurae, ut boues, ubi steti, ut homo, sic in capite positus, cauda, tergo ut homo. quaedam in pectore reptantes, ut cauda et vestigiis corporis, ut capita. quaedam, ut homo, siccum fuisse creditur, ut scorpione corporis testatur,
+----------------------------------------
+
+--- Sample 5 ---
+caesar udi, et neoptolat, ut graeci dicunt, prunnai&thorn; sun&thorn; sunia &#; &#; &#; &#; &#; &#; , unkunia. &#; &#; &#; &#; &#; &#; &#; &#; &#; &#; , unfilhteigs, unfilhei&thorn; s, unfilduagh, unweila; &#; &#; &#; &#; &#; &#; &#; &#; &#; &#; &#; &#; , unhra&thorn; s. &#; &#; &#; &#; &#; &#; &#; &#; &#; &#; , unhrains. &#; &#; &#; &#; &#; &#; &#; &#; &#; &#; , unfilhs; &#; &#; &#; &#; &#; &#; &#; &#; &#; &#; &#; , unhrakunds. &#; &#; &#; &#; &#; &#; &#; &#; &#; , unhrains, unsels. &#; &#; &#; &#; &#; &#; &#; &#; &#; , unhrakains, unriukia. &#; &#; &#; &#;
+----------------------------------------
+
+Generated 5 samples successfully!
+
+Suggested Latin prompts to try:
+ 1. gallia est omnis diuisa in partes tres
+ 2. arma uirumque cano
+ 3. ueni, uidi, uici
+ 4. in principio erat uerbum
+ 5. senatus populusque romanus
+ 6. alea iacta est
+ 7. marcus tullius cicero
+ 8. imperator caesar
+ 9. res publica
+10. consul romanus
+
+To use a different prompt, modify the 'start' variable in /Users/willow/Documents/LatinLLM/sample_latin.py
+Or use: python3 sample_latin.py --start='your prompt here'
+(Obviously need to correct some things, this is nonsense lol.)
+(Impemented a lot of stuff to fix overfitting.)
+Test 2:
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/train_latin.py
+🏛️  LatinLLM Training Script
+==================================================
+✅ Loaded system config from latin_training_config.json
+✅ Loaded custom Latin tokenizer metadata
+   Vocabulary size: 16000
+   Tokenizer type: ByteLevelBPE
+   Training tokens: 12,215,184
+   Validation tokens: 3,020,450
+Device: mps (float16)
+Model: 8 layers, 8 heads, 512 embedding dim
+Normalization: RMSNorm
+Hardware peak FLOPS: 10.0 TFLOPS (float16)
+Training: 4 batch size, 512 context length
+Max iterations: 50000
+Compilation: disabled
+Tokens per iteration: 12,288
+‼️ Initializing new model ex nihilo
+number of parameters: 33.37M
+num decayed parameter tensors: 34, with 33,619,968 parameters
+num non-decayed parameter tensors: 17, with 8,704 parameters
+using fused AdamW: False
+(Training)
+📈 Step 9500: train loss 4.5871, val loss 5.0298
+⏳ Patience: 5/5 (val loss: 5.0298, best: 4.7757)
+🛑 Early stopping triggered after 5 evaluations without improvement
+   Best validation loss: 4.7757
+
+✅ Training completed!
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/train_latin.py
+🏛️  LatinLLM Training Script
+(uh oh.)
+Test 3:
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/train_latin.py
+🏛️  LatinLLM Training Script
+==================================================
+✅ Loaded system config from latin_training_config.json
+✅ Loaded custom Latin tokenizer metadata
+   Vocabulary size: 16000
+   Tokenizer type: ByteLevelBPE
+   Training tokens: 12,289,115
+   Validation tokens: 3,037,439
+Device: mps (float16)
+Model: 8 layers, 8 heads, 512 embedding dim
+Normalization: RMSNorm
+Hardware peak FLOPS: 10.0 TFLOPS (float16)
+Training: 4 batch size, 512 context length
+Max iterations: 75000
+Compilation: disabled
+Tokens per iteration: 12,288
+‼️ Initializing new model ex nihilo
+number of parameters: 33.37M
+num decayed parameter tensors: 34, with 33,619,968 parameters
+num non-decayed parameter tensors: 17, with 8,704 parameters
+using fused AdamW: False
+(Training)
+📈 Step 6000: train loss 4.9329, val loss 4.9944
+⏳ Patience: 1/15 (val loss: 4.9944, best: 4.9368)
+💾 Saving checkpoint to out-latin
+(Training)
+📈 Step 6500: train loss 4.6545, val loss 4.9301
+🎯 New best validation loss: 4.9301
+💾 Saving checkpoint to out-latin
+(Margianal improvements I guess... More training...)
+📈 Step 24000: train loss 4.3039, val loss 4.7914
+⏳ Patience: 15/15 (val loss: 4.7914, best: 4.6630)
+🛑 Early stopping triggered after 15 evaluations without improvement
+   Best validation loss: 4.6630
+
+✅ Training completed!
+(I think atp I definitely need more compute, model is probably ready to go on an actual GPU.)
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/sample_latin.py
+✅ Loaded system config from latin_training_config.json
+Loading model from out-latin/ckpt.pt
+number of parameters: 33.37M
+Model loaded successfully. Best validation loss: 4.6630
+🏛️  Latin GPT Sampling Configuration:
+   Device: mps (float16)
+   Compilation: disabled
+✅ Loading custom Latin tokenizer
+   Vocabulary size: 16000
+   Tokenizer type: ByteLevelBPE
+Starting with prompt: 'caesar '
+
+Generating 5 samples with 200 tokens each:
+Temperature: 0.7, Top-k: 50
+================================================================================
+
+--- Sample 1 ---
+caesar onesta, et in his plus mille nummum, quam si quid eorum ad me deferas, in his aedibus ferebam, esse me quoque et idcirco referre tibi me in maiorem modum quam mihi". de pignore quoque litteris "quiesco" littera dicenda sunt: "e" inquit "qui flumina locuntur autorum eorum defuerint autum", id est "i" praepositio in quibus verbis "i" littera media syllaba correpta est. i. "e" littera in eo tractim pronuntiata, quod est "e" littera in eo tractim pronuntiata, ita "e" iuncte et producte dicebatur. ii. diuus etiam augustus, linguae latinae non nescius munditiarumque patris sui in sermonibus sectator, "e" littera correpta scripsit. iii. nam in sermonibus forte, quae tunc produci barbare insciteque eius syllaba correpta erat, quae scripta in iv in eodem templo locuta "e" littera correpta producta. vide item huic humilem et item porcam esse son litteram et item "e
+----------------------------------------
+
+--- Sample 2 ---
+caesar onestalle, oxygion de ton allon. semeion dekaion, koilian anege houtos, all'en chromenon estin. 2 haec aemulari volens sallustius de sertorio duce in historiis ita scripsit: "magna gloria tribunus militum in hispania titus didio imperante, magno usui bello marsico paratu militum et armorum fuit, multaque tum ductu eius iussuque patrata primo per ignobilitatem, deinde per inuidiam scriptorum incelebrata sunt, quae viuus facie sua ostentabat aliquot aduersis cicatricibus et effosso oculo. quin ille dehonestamento corporis maxime laetabatur neque illis anxius, quia reliqua gloriosius retinebat. "3 de utriusque his verbis titus castricius cum iudicaret, "nonne" inquit "ultra naturae humanae modum est dehonestamento corporis laetari? siquidem laetitia dicitur exsultatio quaedam animi gaudio efferuentior euentu rerum expetitarum. 4 quanto illud sinceriusque et humanis magis condicionibus conueniens: pan ho ti an bouletheie
+----------------------------------------
+
+--- Sample 3 ---
+caesar {{y}}{y}}}}}}}{}}{{{{{{{{}}}}{{{{}}}}{{{{} [}}}{{{{{{{{{{{{{{{{}}{{{{{{}}{{{{{{{{{{}{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}{{{{{{{{{{{{{{{{{{{{{}{{{}{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}{{{{{
+----------------------------------------
+
+--- Sample 4 ---
+caesar {{{{{{{{{{{{}}}{}}}}{{{{{{{{{{{}}}{{{{{{{{{{}{}}{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}{{{{{{{{{{{{{{{{{{{{}{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}{{{{{{{{{{{{{{{{{{{
+----------------------------------------
+
+--- Sample 5 ---
+caesar {{{{{{}}}}}}}}{{{{{{{{{}}{{}{{{{{{{{{{{}}{{{{{}{{{{{{{{{{{{{{}}{{{{{{{{{{{{{{{{{{}}{{{{{{{{{{{{{{{{{{{}{{{{{{{{{{{{{{{{{{{{{{{{t}{}{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}{{{}{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{
+----------------------------------------
+
+Generated 5 samples successfully!
+
+Suggested Latin prompts to try:
+ 1. gallia est omnis diuisa in partes tres
+ 2. arma uirumque cano
+ 3. ueni, uidi, uici
+ 4. in principio erat uerbum
+ 5. senatus populusque romanus
+ 6. alea iacta est
+ 7. marcus tullius cicero
+ 8. imperator caesar
+ 9. res publica
+10. consul romanus
+
+To use a different prompt, modify the 'start' variable in /Users/willow/Documents/LatinLLM/sample_latin.py
+Or use: python3 sample_latin.py --start='your prompt here'
+(Obviously some issues with the data I guess.)
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/scriptor.py
+✅ Loaded system config from latin_training_config.json
+======================================================================
+    🏛️  SCRIPTOR - Interactive Latin Writing Assistant  🏛️
+======================================================================
+Commands:
+  '1' + Enter = Continue writing from where I left off
+  '2' + Enter = Exit
+  Any other text = Add your input and continue writing
+======================================================================
+Loading model from out-latin/ckpt.pt
+number of parameters: 33.37M
+Model loaded successfully. Best validation loss: 4.6630
+🏛️  Latin Scriptor Configuration:
+   Device: mps (float16)
+   Compilation: disabled
+✅ Loading custom Latin tokenizer
+   Vocabulary size: 16000
+   Tokenizer type: ByteLevelBPE
+
+Enter your initial prompt to start writing:
+> sed caesar dixit:       
+
+======================================================================
+scribens... (Generation #1)
+======================================================================
+ "o" inquit "me maxime est, quod honestius facit, quam si id nimis esse remotus huiusce versus feceris, quae quidem in mentem venit, sed in mentem venit id vis saeua et amoenitas: sic tacitus mentis et vocum proximarum secundarum secundarum rerum pondera miscentur. xi. nam "beneficium" dicit, non esse id poetice dictum, quod lucilius ait, sed quod hic sonus, id ferme est "labularia" inquit "detrita usurpatione producitur. " xii. caecilius in gallis: "mascuos seruitutem mea libertatem paro, quibus seruitutem mea miseria deprecor; nam me iniuriam ferre, si quis et odium deprecetur, quamuisitor litterarum dicat, quam culpa non est, sed quem ego a vobis habuit legatus. " xiii. item hoc quoque super eadem re dicit: "ut ager" inquit "mundus", quod homines facere voluissent, priusquam nihil quicquam esset infestius, xiii. "coniugis" quoque et vocabulum hoc in loco isto positum est, quod frequentatiuum est, ut eo verbo "m manet. ac rubentem auroram "pudor" feminino genere appellauit et duplex, ut pleraque syllaba in "e" littera breuiter dixit, ut graphice "moueo", sic "pens" littera longa et ut similia omnia e contra "felice", ut sic "patri patris", "perpetu" et "felice", "tu", "structor" et "tu", "tu", "tribunumi", "tito". xiv. sic autem " simili ratione intendentissimus "fretor" littera in hisce versibus: haut, ut opinor, et meae vitae cur ita dicas, et tis te primam in loco sonare, opinor, nisi si mutes "a" litteram, non "in"; nam si ita dicas: ""mei" casu interrogandi", tum per "i" scribendum est, quia dandi casus est, cum "mihei", tum per "i" scribendum est, quia dandi casus est". x. haec nos auctoritate doctissimi hominis adducti propter eos, qui harum quoque rerum scientiam quaerunt, non praetermittenda existimauimus. de versibus, quos vergilius sectatus videtur, homeri ac partheni. i. partheni poetae versus kai nerei kai einalioi melikertei. ii. eum versum vergilius aemulatus est itaque fecit duobus vocabulis venuste inmutatis parem: glauco et panopeae et inoo melicertae. iii. sed illi homerico non sane re parem neque similem fecit; esse enim videtur homeri simplicior et sincerior, vergilii autem neoterikoteros et quodam quasi ferumine inmisso fucatior: tauron d'alpheioi, tauron de poseidaoni. taurum neptuno, taurum tibi, pulcher apollo. de sententia panaetii philosophi, quam scripsit in libro de officiis secundo, qua hortatur, ut homines ad cauendas iniurias in omni loco intenti paratique sint. i. legebatur panaetii philosophi liber de officiis secundus ex tribus illis inclitis libris, quos marcus tullius magno cum studio maximoque opere aemulatus est. ii. ibi scriptum est cum multa alia ad bonam frugem ducentia, tum vel maxime, quod esse haerereque in animo debet. iii. id autem est ad hanc ferme sententiam: "vita" inquit "hominum, qui aetatem in medio rerum agunt ac sibi suisque esse usui volunt, negotia periculaque ex inprouiso adsidua et prope cotidiana fert. ad ea cauenda atque declinanda perinde esse oportet animo prompto semper atque intento, ut sunt athletarum, qui pancratiastae vocantur. iv. nam sicut illi ad certandum vocati proiectis alte brachiis consistunt caputque et os suum manibus oppositis quasi vallo praemuniunt membraque eorum omnia, priusquam pugna mota est, aut ad vitandos ictus cauta sunt aut ad faciendos parata: ita animus atque mens viri prudentis aduersus vim et petulantias iniuriarum omni in loco atque in tempore prospiciens debet esse, erecta, ardua, saepta solide, expedita, numquam coniuens, nusquam aciem suam flectens, consilia cogitationesque contra fortunae calorem domus atque indicia fecisse dicitur". vide haec ego versibus credo multa etiam dicere in veterum libris legi: scythas radit vox fauces saepe, facitque asperiora foras gradiens arteria clamor. vi. at hic noster "turrim" inquit "aucum est, nonula caeli abesse aua et erigi tarditatem quandam quasi quadam vi atque urinamentis teli corrumpi ex eo conpressos erumpere spiritusque et erigere spiritusque et rescindere spiritus reciprocatione alieni corrumpere spiritus inclusa atque in corpore et rem protrudere spiritus vitium e pectore eius euadere non dolorem magis quam pugnam acerrimam ruborem. vii. at ubi caelum enituit et deferbuit mare et ardor ille periculi deflagrauit, accedit ad stoicum graecus quispiam diues ex asia magno, ut videbamus, cultu paratuque rerum et familiae, atque ipse erat multis corporis animique deliciis diffluens. viii. is quasi inludens: "quid hoc est, " inquit "o philosophe, quod, cum in periculis essemus, timuisti tu et palluisti? ego neque timui neque pallui. " ix. et philosophus aliquantum cunctatus, an respondere ei conueniret, "si quid ego" inquit "in tanta violentia tempestatum videor paulum pauefactus, non tu istius rei ratione audienda dignus es. x. set tibi sane aristippus ille. .. discipulus, pro me responderit, qui cum in simili tempore a simillimo tui homine esset interrogatus, quare philosophus timeret, cum ille contra nihil metueret, non eandem esse causam sibi atque illi respondit, quoniam is quidem esset non magno opere sollicitus pro anima nequissimi nebulonis, ipsum autem pro aristippi anima timere. " xi. his tunc verbis stoicus diuitem illum asiaticum a sese molitus est. xii. sed postea cum brundisium aduentaremus malaciaque esset venti ac maris, percontatus eum sum, quaenam illa ratio esset pauoris sui, quam dicere ei supersedisset, a quo fuerat non satis digne compellatus. xiii. atque ille mihi placide et comiter "quoniam" inquit "audiendi cupidus es, audi, quid super isto breui quidem, sed necessario et naturali pauore maiores nostri, conditores sectae stoicae, senserint, vel potius" inquit "lege; nam et facilius credideris, si legas, et memineris magis. " xiv. atque ibi coram ex sarcinula sua librum protulit epicteti philosophi quintum dialexeon, quas ab arriano digestas congruere scriptis zenonos et chrysippi non dubium est. xv. in eo libro graeca scilicet oratione scriptum ad hanc sententiam legimus: "visa animi, quas phantasias philosophi appellant, quibus mens hominis prima statim specie accidentis ad animum rei pellitur, non voluntatis sunt neque arbitraria, sed vi quadam sua inferunt sese hominibus noscitanda; xvi. probationes autem, quas synkatatheseis vocant, quibus eadem visa noscuntur ac diiudicantur voluntariae sunt fiuntque hominum arbitratu. xvii. propterea cum sonus aliquis formidabilis aut caelo aut ex ruina, aut repentinus nescio cuius periculi nuntius vel quid aliud est eiusmodi factum, sapientis quoque animum paulisper moueri et contrahi et pallescere necessum est non opinione alicuius mali praecepta, sed quibusdam motibus rapinis, ob eamque rem naturae sibi insignia deuenustet, non secus utile esse, quam quod insipiens, qualia sibi ex eodem animi facto sensim et formidine inani fiducia scripsit. xviii. mox tamen ille sapiens ibidem tas toiautas phantasias, id est visa istaec animi sui terrifica, non adprobat, hoc est ou synkatithetai oude prosepidoxazei, sed abicit respuitque, nec ei metuendum esse in his quicquam videtur. xix. atque hoc inter insipientis sapientisque animum differre dicunt, quod insipiens, qualia sibi esse primo animi sui pulsu visa sunt saeua et aspera, talia esse vero putat et eadem incepta, tamquam si iure metuenda sint, sua quoque adsensione adprobat kai proepidoxazei - hoc enim verbo stoici, cum super ista re disserunt, utuntur -, xx. sapiens autem, cum breuiter et strictim colore atque vultu motus est, ou synkatithetai, sed statum vigoremque sententiae suae retinet, quam de huiuscemodi visis semper habuit ut de minime metuendis, sed fronte falsa et formidine inani territantibus. " xxi. haec epictetum philosophum ex decretis stoicorum sensisse atque dixisse in eo, quo dixi, libro legimus adnotandaque esse idcirco existimauimus, ut rebus forte id genus, quibus dixi, obortis pauescere sensim et quasi albescere non insipientis esse hominis neque ignaui putemus et in eo tamen breui motu naturali magis infirmitati cedamus, quam quod esse ea, qualia visa sunt, censeamus. .. . i. quinque sunt hominum sensus, quos graeci aistheseis appellant, per quos voluptas animo aut corpori quaeri videatur: gustus, tactus, odoratus, visus, odoratus, visus, auditus. ex his omnibus quae inmodice voluptas capitur, ea turpis atque inproba existimatur. ii. sed enim quae nimia ex gustu atque tactu est, ea voluptas, sicuti sapientes viri censuerunt, omnium rerum fidem non toleramus. iii. verba, quae meminimus, accedere, curandum censes etiam existimemus, ut rebus forte id genus, in quo dixi, positos legat; iv. verba haec sunt: pasa gar praxis hode echei; aute eph'hautes prattomene oute kale oute aischra; hoion ho nyn hemeis poioumen, e pinein e dialegesthai; ho nyn hemeis poioumen, e dialegesthai.
+
+----------------------------------------------------------------------
+quod vis deinde?
+  '1' = Continue writing
+  '2' = Exit
+  Or type your own text to add and continue
+> 2
+
+uale! (Farewell!)
+(Some of the stuff here is legitimately interesting and reveals a bit about how the model works currently. I want to try things with a better GPU and aim for val loss of ~1, maybe re-re-re-clean data too I guess but at this point I just want to run the model more...)
+willow@Willows-MacBook-Pro LatinLLM % /usr/bin/python3 /Users/willow/Documents/LatinLLM/scriptor.py    
+✅ Loaded system config from latin_training_config.json
+======================================================================
+    🏛️  SCRIPTOR - Interactive Latin Writing Assistant  🏛️
+======================================================================
+Commands:
+  '1' + Enter = Continue writing from where I left off
+  '2' + Enter = Exit
+  Any other text = Add your input and continue writing
+======================================================================
+Loading model from out-latin/ckpt.pt
+number of parameters: 33.37M
+Model loaded successfully. Best validation loss: 4.6630
+🏛️  Latin Scriptor Configuration:
+   Device: mps (float16)
+   Compilation: disabled
+✅ Loading custom Latin tokenizer
+   Vocabulary size: 16000
+   Tokenizer type: ByteLevelBPE
+
+Enter your initial prompt to start writing:
+> de gentibus germaniae:
+
+======================================================================
+scribens... (Generation #1)
+======================================================================
+ ad quem non est tantum bellum, sed de fide, de fide, de pace, de pace, de foedere, de foedere, de pace, foedere, de foedere, de foedere, foedere. et ideo cum, quod nunc est, non tantum, sed etiam a foedere, et foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere foedere, foedere, foedere foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere inabile. imper. foedere hoc foedere, foedere asc ascanius, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, quam foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum, foedere, foedere, foedere, foederealem, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere foedere, foedere, foedere, foedere, foedere foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, et foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere foedere, foedere, foedere, foedere cum omni foedere, foedere cum, homini, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere foedus cum foedere, foedere cum, foedere, foedere, foedere, foedere cum foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere cum, foedere, foedere, leges, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere cum foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere cum foedere, foedere cum foedere, foedere, foedere cum, foedere, foedere cum foedere, foedere cum foedere cum foedere foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere foedere, foedere, foedere, foedere, foedere, foedere, foedere cum, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum, foedere, foedere cum foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere cum, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere cum, foedere, foedere, foedere cum, foedere, foedere, foedere, foedus cum, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum, foedere, foedere cum foedere pacire, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere foedere, foedere, foedere, foedere cum foedere, foedere, foedere cum, foedere, foedere, foedere, foedere, foedere cum foedere, foedere, foedere, foedere, foedere, foedere, foedere cum, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere, foedere cum, foedere, foedere, foedere cum, foedere, foedere, foedere cum, foedere,to, tum foedere, foedere, foedere accepto, foedere, foedus cum foedere cum, foedere cum foedere cum illo, foedere, foedere cum singulis, foedus cum foedere cum foedere, foedere, foedere, foedere, foedere cum graecis, foedere, foedere, foedere, foedere, foedere, foedere, foedere.
+
+----------------------------------------------------------------------
+quod vis deinde?
+  '1' = Continue writing
+  '2' = Exit
+  Or type your own text to add and continue
+> 2
+
+uale! (Farewell!)
