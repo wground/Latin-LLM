@@ -1,0 +1,17 @@
+# IDE / editor
+.vscode/
+.claude/
+
+# OS
+.DS_Store
+
+# Project-specific
+NanoChat Reference/
+src/Training Data/
+out-latin/
+latin_corpus_merged.txt
+latin_training_config.json
+
+# Root-level build artifacts (if prepare_latin.py is run from repo root instead of src/)
+/gpt_data_latin/
+/tokenizer_latin/

@@ -433,23 +433,29 @@ def main():
         print(f"\n⚠️  Missing required dependencies: {', '.join(dependencies['missing'])}")
         return 1
     
-    # Show GPU test results
-    if pytorch_info.get("mps_available") or pytorch_info["cuda_available"]:
-        print(f"\nGPU Tests:")
-        print(f"  Tensor Operations: {'✅' if gpu_tests['tensor_operations'] else '❌'}")
-        print(f"  Mixed Precision: {'✅' if gpu_tests['mixed_precision'] else '❌'}")
-        print(f"  Memory Allocation: {'✅' if gpu_tests['memory_allocation'] else '❌'}")
-        
-        if gpu_tests["errors"]:
-            print(f"  Errors: {', '.join(gpu_tests['errors'])}")
-    
-    # Save configuration
+    # Save configuration BEFORE printing results (to prevent Unicode crashes on Windows)
     config_path = "latin_training_config.json"
     with open(config_path, 'w') as f:
         json.dump(report, f, indent=2)
-    
-    print(f"\n✅ System detection complete!")
-    print(f"📄 Full report saved to: {config_path}")
+
+    # Show GPU test results (use ASCII fallbacks for Windows compatibility)
+    def safe_check(val):
+        try:
+            return '\u2705' if val else '\u274c'
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            return '[OK]' if val else '[FAIL]'
+
+    if pytorch_info.get("mps_available") or pytorch_info["cuda_available"]:
+        print(f"\nGPU Tests:")
+        print(f"  Tensor Operations: {safe_check(gpu_tests['tensor_operations'])}")
+        print(f"  Mixed Precision: {safe_check(gpu_tests['mixed_precision'])}")
+        print(f"  Memory Allocation: {safe_check(gpu_tests['memory_allocation'])}")
+
+        if gpu_tests["errors"]:
+            print(f"  Errors: {', '.join(gpu_tests['errors'])}")
+
+    print(f"\nSystem detection complete!")
+    print(f"Full report saved to: {config_path}")
     print(f"\nRecommended training configuration:")
     print(f"  Device: {training_config['device']}")
     print(f"  Backend: {training_config['backend']}")
@@ -457,7 +463,7 @@ def main():
     print(f"  Batch Size: {training_config['recommended_batch_size']}")
     print(f"  Block Size: {training_config['recommended_block_size']}")
     print(f"  Compile Model: {training_config['compile']}")
-    
+
     return 0 if not dependencies["missing"] and (not (pytorch_info["cuda_available"] or pytorch_info.get("mps_available")) or gpu_tests["tensor_operations"]) else 1
 
 if __name__ == "__main__":

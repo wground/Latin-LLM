@@ -117,15 +117,10 @@ elif device == 'mps':
     # No additional seeds needed for MPS
 
 # Set up mixed precision context based on detected capabilities
-if device == 'mps':
-    device_type = 'cpu'
-elif device == 'cuda':
-    device_type = 'cuda'
-else:
-    device_type = 'cpu'
+device_type = device if device in ('cuda', 'mps') else 'cpu'
 
 ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[dtype]
-ctx = nullcontext() if (device_type == 'cpu' and device == 'cpu') else torch.amp.autocast(device_type=device_type, dtype=ptdtype)
+ctx = nullcontext() if device_type == 'cpu' else torch.amp.autocast(device_type=device_type, dtype=ptdtype)
 
 # Load the trained Latin model
 ckpt_path = os.path.join(out_dir, 'ckpt.pt')
@@ -135,7 +130,7 @@ if not os.path.exists(ckpt_path):
     exit(1)
 
 print(f"Loading model from {ckpt_path}")
-checkpoint = torch.load(ckpt_path, map_location=device)
+checkpoint = torch.load(ckpt_path, map_location=device, weights_only=False)
 gptconf = GPTConfig(**checkpoint['model_args'])
 model = GPT(gptconf)
 state_dict = checkpoint['model']

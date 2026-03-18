@@ -1,0 +1,27 @@
+=== LatinLLM System Detection ===
+
+Gathering system information...
+System: Windows-11-10.0.26200-SP0
+Python: 3.13.6
+PyTorch: 2.9.1+cu126
+CUDA Available: True
+Backend: CUDA
+GPU Count: 1
+  GPU 0: NVIDIA GeForce RTX 3060 (12.0GB)
+Mixed Precision Support:
+  Float16: True
+  BFloat16: True
+  TF32: True
+
+GPU Tests:
+Traceback (most recent call last):
+  File "D:\Documents\GitHub\Latin-LLM\Latin-LLM v.0.6\detect_system.py", line 464, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "D:\Documents\GitHub\Latin-LLM\Latin-LLM v.0.6\detect_system.py", line 439, in main
+    print(f"  Tensor Operations: {'\u2705' if gpu_tests['tensor_operations'] else '\u274c'}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 21: character maps to <undefined>

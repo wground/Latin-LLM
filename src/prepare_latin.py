@@ -99,8 +99,8 @@ print(f"   - merges.txt: BPE merge rules")
 # Step 3: Encode the corpus with our custom tokenizer
 print(f"\nEncoding corpus with custom Latin tokenizer...")
 
-# Split corpus into train/val first (80% train, 20% val)
-split_idx = int(0.8 * len(merged_data))
+# Split corpus into train/val (90% train, 10% val)
+split_idx = int(0.9 * len(merged_data))
 train_text = merged_data[:split_idx]
 val_text = merged_data[split_idx:]
 

@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-03-17T16:43:00",
+  "system_info": {
+    "platform": "Windows-11",
+    "python_version": "3.13.6"
+  },
+  "pytorch": {
+    "pytorch_version": "2.9.1+cu126",
+    "cuda_available": true,
+    "gpu_count": 1,
+    "gpu_devices": [
+      {
+        "name": "NVIDIA GeForce RTX 3060",
+        "memory_total": 12884901888,
+        "compute_capability": "8.6"
+      }
+    ],
+    "backend_type": "cuda"
+  },
+  "mixed_precision_support": {
+    "float16": true,
+    "bfloat16": true,
+    "tf32": true
+  },
+  "recommended_config": {
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "compile": false,
+    "backend": "cuda",
+    "multi_gpu": false,
+    "recommended_batch_size": 32,
+    "recommended_block_size": 256,
+    "use_fused_adamw": true,
+    "enable_tf32": true
+  }
+}
