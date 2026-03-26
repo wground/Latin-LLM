@@ -754,12 +754,12 @@ it ud
 li us
 t ri
 t orum
-- -
 Ġu ul
 Ġu r
 Ġprop h
 Ġi es
 Ġd om
+- -
 Ġuol unt
 ĠÎ µ
 Ġser u
@@ -1388,9 +1388,9 @@ u per
 Ġme um
 Ġ od
 ari i
-â Ģ
 Ġsc rib
 l et
+â Ģ
 Ġg er
 Ġred d
 Ġscrip tum
@@ -1522,7 +1522,6 @@ ab ant
 Ġs oli
 Ġpresb yter
 Ġini qu
-Ġ -
 f ac
 eb atur
 Ġali o
@@ -1554,6 +1553,7 @@ ion es
 Ġterr ae
 ĠÎº Î±Î¹
 Ġtu o
+Ġ -
 Ġfid el
 Ġres ur
 Ġcl am
@@ -1635,6 +1635,7 @@ e ti
 Ġips is
 Ġn esci
 u el
+Ġb re
 ar ent
 Ġr atione
 Ġmagn a
@@ -1655,7 +1656,6 @@ ar g
 ti is
 Î± ÏĦ
 Ġp iet
-Ġb re
 in us
 Ġanim ae
 Ġr ap
@@ -1705,7 +1705,6 @@ el li
 Ġp ort
 itud inem
 Ġcon cili
-. .
 Ġdi u
 Ġcir ca
 Ġt ab
@@ -1872,6 +1871,7 @@ it em
 n um
 Ġapp ar
 qu od
+. .
 Ġsalut em
 h ae
 Ġh uic
@@ -1891,8 +1891,8 @@ p ici
 Ġg a
 en um
 Ġfili os
-Ġ. --
 ti os
+Ġ. --
 g a
 Ġm ac
 Ïģ Î¹
@@ -2186,9 +2186,9 @@ y l
 Ġimp os
 Ġi b
 Ġbe atus
-Ġ --
 ad modum
 Ġpe ti
+Ġ --
 Ġred emp
 Ġindi gn
 Ġacc us
@@ -2871,7 +2871,6 @@ und um
 Î ²
 Ġcla us
 Ġmuli er
-_ _
 ti ci
 ab antur
 xx x
@@ -3441,8 +3440,8 @@ tur us
 Ġno uum
 Ġter ris
 e am
-Ġinf in
 Ġ um
+Ġinf in
 Ġdic am
 Ġsub lim
 Ġconu enit
@@ -3473,8 +3472,8 @@ ap ropter
 re tur
 Ġmet u
 Ġpl en
-a h
 Ġui uit
+a h
 p lex
 Ġinc or
 Ġexc ommunic
@@ -3998,7 +3997,6 @@ u tionis
 Ġmand ata
 Ġno ta
 Ġi ob
-Ġ. .
 s ae
 ot us
 Ġper hib
@@ -4151,6 +4149,7 @@ or sum
 a uerat
 Ġcaus as
 Ġto ti
+Ġbre ui
 ac ia
 Ġquos dam
 in os
@@ -4176,6 +4175,7 @@ ri i
 Ġmun ere
 Ġh ostes
 Ġor a
+Ġ. .
 Ġtu as
 Ġadh a
 Ġdiabol o
@@ -4208,8 +4208,8 @@ um entum
 Ġmon tem
 Ġux or
 a bus
-ui o
 atur us
+ui o
 Ġcal c
 esc unt
 Ġanim os
@@ -4397,8 +4397,8 @@ qu em
 Ġcom per
 ili bus
 Ġplac uit
-Ġcatholic a
 Ġsi g
+Ġcatholic a
 Ġgrae ci
 Ġsimplic iter
 Ġapostol o
@@ -4455,7 +4455,6 @@ et um
 ĠÎµÏĢ Î¹
 Ġb elli
 Ġconstit uit
-Ġbre ui
 Ġu ali
 Ġpecc atores
 u ir
@@ -4640,10 +4639,10 @@ ab or
 Ġca u
 Ġtran qu
 Ġh yp
-Ġi ah
 ĠÏĢ Î±Ïģ
 Ġfutur o
 Ġsubscrips i
+Ġi ah
 Ġappell atur
 ar ibus
 am ento
@@ -5056,7 +5055,6 @@ p or
 ec cles
 Ġpl u
 Ġfidel iter
-.. .
 Ġuol ens
 Ġrep ar
 tic us
@@ -5116,7 +5114,6 @@ on iae
 ĠÎ± Î³
 Ġsuccess oribus
 Ġamb ros
-__ __
 Ġuas a
 id ia
 Ġcon g
@@ -5190,6 +5187,7 @@ c om
 Î¿ Î³
 Ġinc ho
 Ġredd ere
+.. .
 Ġpulch r
 im entum
 Ġtra dit
@@ -5880,14 +5878,14 @@ em ini
 tr ans
 ĠÏĥ ÏħÎ½
 titer it
-Ġf a
 ri am
 Ġinn ot
 Ġcas tig
+Ġf a
 Ġcec idit
+Ġn us
 Ġprop in
 Ġpass io
-Ġn us
 bi lia
 Ġconc ordi
 Ġcred entes
@@ -6189,12 +6187,12 @@ itur us
 Ġz ach
 Ġun itas
 Ġir ac
-s c
 ol as
 ĠÏħ ÏĢ
 Ġcogn os
 Ġlitter a
 Ġexp ugn
+s c
 as i
 Ġprod est
 Ġanim is
@@ -6717,9 +6715,9 @@ u entes
 Ġanathem a
 il lo
 Ġod ium
+Ġa i
 Ġecclesiastic is
 Ġscr ut
-Ġa i
 Ġoffic iis
 itud ines
 Ġcaes aris
@@ -7686,7 +7684,6 @@ u endo
 er ere
 Ġalt ari
 Ġcanc ell
-Ġ. ..
 Ġangel o
 ib unt
 ĠÎ± Î¹
@@ -7719,6 +7716,7 @@ or ius
 Ġnati uitatis
 Ġprom er
 Ġir atus
+Ġ. ..
 Ġpraedic ationem
 Ġcal ce
 Ġscrib itur
@@ -7811,8 +7809,8 @@ f o
 Ġma x
 Ġth ess
 Ġg el
-Ġlau ac
 Ġ )
+Ġlau ac
 Ġcon fic
 Ġob uiam
 Ġpat ron
@@ -8296,8 +8294,8 @@ eunt e
 Ġaur ea
 Ġsimul que
 Ġsalut aris
-Ġreg ionem
 Ġp io
+Ġreg ionem
 Ġdecim as
 Ġcan is
 Ġdim isit
@@ -8403,9 +8401,9 @@ u enda
 est es
 ĠÏĦ Î¿Î¹ÏĤ
 Å¿ t
-s crip
 am et
 Ġpraedic tis
+s crip
 Ġa era
 Ġag ros
 Ġarg ento
@@ -8951,7 +8949,6 @@ ueni ens
 Ġmort alis
 un a
 Ġsempiter na
-Ġ =
 Ġpar th
 Ġostend ens
 Ġconj ung
@@ -9522,10 +9519,9 @@ isc us
 Ġpal atium
 Ġsol ito
 Ġqual itatem
-____ ____
 Ġordin atione
-Ġ- .
 Ġcur ia
+Ġ- .
 Ġopp ido
 qu omodo
 in orum
@@ -9688,9 +9684,9 @@ u tionibus
 Ġseptim a
 Ġassid ue
 Ġguillel mus
-j a
 Ġcatholic orum
 Ġsar c
+j a
 issim as
 Ġfer me
 ill os
@@ -9823,7 +9819,6 @@ entissim um
 od onos
 Ġdom ui
 Ġambul are
-Ġ {
 Ġostend at
 Ġoccas um
 Ġp ab
@@ -9919,11 +9914,11 @@ ati uo
 Ġdu cibus
 ill am
 Ġsupplici o
+Ġi a
 Ġin fec
 Ġdogm ata
 Ġu ento
 Î± ÏģÎ¹
-Ġi a
 Ġc aret
 Ġad ae
 Ġleg atus
@@ -9974,7 +9969,6 @@ quae que
 Ġnub ibus
 Ġcondit or
 crips it
-Ġn u
 Ġpr isci
 Ġgr essus
 Ġdisc ere
@@ -9986,7 +9980,9 @@ crips it
 d al
 n arum
 u ibus
+Ġ {
 Ġperhib etur
+Ġn u
 dis cip
 Ġsimplic es
 Ġsatisfac tione
@@ -10192,6 +10188,7 @@ aud i
 Ġaug mentum
 Ġdelici is
 am p
+ab ar
 Ġsed ibus
 Ġeffic ere
 entissim a
@@ -10200,7 +10197,6 @@ entissim a
 Ġantis tit
 or ium
 em a
-ab ar
 Ġgr ande
 ular em
 Ġphilosoph orum
@@ -10291,6 +10287,7 @@ im entis
 Ġtabern aculo
 Ġfor es
 Ġuniuers aliter
+Ġ âŁ¨
 on us
 Ġu ili
 Ġad u
@@ -10307,7 +10304,6 @@ on us
 Ġsaec ularibus
 Ġaltitud o
 Ġlucern a
-Ġ âŁ¨
 Ġius tini
 Ġtrad unt
 Ġdomin icam
@@ -10403,11 +10399,11 @@ d at
 Ġomnipot enti
 Ġingress i
 Ġpropi tius
+tin is
 Ġuoc abitur
 Ġproxim e
 Ġmit titur
 Ġco actus
-tin is
 es is
 Ġcre de
 Ïħ Ïĩ
@@ -10585,7 +10581,6 @@ ard orum
 tr as
 Ġpar es
 Ġcar mine
-.. ..
 x erat
 Ġd ag
 Ġg n
@@ -11005,6 +11000,7 @@ ul fus
 Ġcar b
 Ġher cle
 Ġconsider andum
+Ġ =
 Ġtr ab
 erat or
 Ġsacerdot e
@@ -11153,6 +11149,7 @@ ider ant
 Ġsuffici enter
 ur git
 Ġob uia
+Ġsc ab
 Îµ Îº
 Ġaud isset
 Ġsignific et
@@ -11166,7 +11163,6 @@ ur git
 Ġlegitim a
 Ġfebru arii
 Ġhab ebis
-Ġsc ab
 Ġsapi enter
 ĠÎ± Îº
 Ġdionys ii
@@ -11186,7 +11182,6 @@ ac e
 Ġne pos
 Ġliber ati
 Ġtabern acula
-b ar
 Ġre le
 Ġam isit
 ub stanti
@@ -11194,6 +11189,7 @@ ub stanti
 Ġla icis
 Ġpul uerem
 Ġieiun ia
+b ar
 em et
 Ġomnes que
 Ġneque unt
@@ -11233,7 +11229,6 @@ per s
 Ġeg est
 Ġutil itatis
 Ġpraefec tus
-b re
 Ġad al
 Ġurb ani
 Ġtransi erunt
@@ -11351,8 +11346,8 @@ o f
 Ġconsumm ationem
 Ġin anis
 ab ul
-ua st
 Ġuol uisset
+ua st
 Ġnol uerit
 Ġconsider are
 Ġiuli ani
@@ -13313,7 +13308,6 @@ luc ius
 Ġpar t
 Ġclaus tra
 Ġregim ine
-= =
 Ġin ane
 Ġcomm e
 Ġeu ag
@@ -13328,7 +13322,6 @@ luc ius
 Ġren asc
 Ġsuscip imus
 Ġmarm ore
-- .
 Ġinc it
 Ġdoctr inis
 Ġfrequ ens
@@ -13381,6 +13374,7 @@ artic ulus
 Ġfacult ate
 Ġcompreh endit
 Ġuec tig
+- .
 Ġs ina
 Ġn ato
 am ma
@@ -14137,13 +14131,13 @@ p us
 Ġfall ac
 Ġpraedestin atione
 Ġhe in
-s ym
 Ġiudic ari
 Ġsubs ec
 Ġreligios a
 Ġsump tum
 h eu
 p ri
+s ym
 Ġre tic
 Ġut atur
 Ġimm undus
@@ -14189,6 +14183,7 @@ ib at
 Ġex pressit
 Ġsub rog
 Ġat rium
+Ġscrip tor
 Ġcens um
 Ġglori etur
 Ġappend iciis
@@ -14199,7 +14194,6 @@ i ul
 ÏĦ Î±Î¹
 Ġcap tum
 Ġterr or
-Ġscrip tor
 Ġae ui
 Ġed ere
 Ġuari os
@@ -14562,7 +14556,6 @@ ere tis
 Ġumb rae
 Ġinstrum ento
 Ġhierosolym am
-a Ã¾
 op otam
 Ġex odo
 ens io
@@ -14572,6 +14565,7 @@ ens io
 Ġfran ciae
 Ġliter is
 Ġadn ot
+a Ã¾
 Ġquibus cumque
 Ġcuius cunque
 Ġcarn alia
@@ -14785,6 +14779,7 @@ inc ti
 Ġclar itatis
 Ġcond on
 Ġconjug io
+Ġsymb olum
 Ġc ati
 id iam
 Ġex op
@@ -14792,7 +14787,6 @@ id iam
 Ġdecern it
 Ġopportun e
 Ġaccess erunt
-Ġsymb olum
 Ġcoin quin
 Ġaegyp tii
 Ġfau ente
@@ -14804,6 +14798,7 @@ id iam
 Ġeus ebius
 chris ti
 Ġaeccles iae
+. ]
 d idit
 Ġf eret
 Ġchris t
@@ -14820,7 +14815,6 @@ d idit
 Ġgraec us
 Ġfrequ entia
 do as
-. ]
 Ġs un
 qu orum
 Ġues p
@@ -14912,7 +14906,6 @@ ar m
 ut urum
 tis se
 Ġsc ito
-pec c
 Ġdilig entissime
 Ġfigur as
 Ġnobil itate
@@ -14921,6 +14914,7 @@ pec c
 t antum
 Îµ ÏĨ
 res p
+pec c
 Ġperfec to
 par s
 Ġabsol uta
@@ -15246,6 +15240,7 @@ us ta
 Ġtant as
 Ġti r
 Ġcommun ibus
+Ġem b
 Ġassum ps
 Ġconsequ entibus
 Ġpast ore
@@ -15285,7 +15280,6 @@ pos itis
 Ġsequ antur
 Ġliber abit
 Ġput abant
-Ġem b
 Ġprol es
 Ġreman ere
 Ġincom par
@@ -15438,6 +15432,7 @@ ass es
 ĠÎ± Î»Î·Î¸
 Ġuinc itur
 Ġconfirm ata
+.. ..
 Ġconueni ant
 ra dus
 Ġsol itum
@@ -15532,6 +15527,7 @@ im elech
 Ġcre debant
 Ġten uerunt
 Ġpresbyter orum
+Ġdecem b
 Ġsepar are
 Ġlarg itione
 Ġconsol ationis
@@ -15741,3 +15737,7 @@ con tr
 Ġa ulam
 Ġt elis
 Ġhab e
+Ġst ellis
+Ġput aret
+ill as
+Ġsil uas
