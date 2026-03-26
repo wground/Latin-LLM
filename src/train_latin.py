@@ -179,15 +179,15 @@ def setup_training_config(system_config: Dict[str, Any], args: argparse.Namespac
     if train_tokens > 10_000_000:  # Large dataset (10M+)
         eval_interval = 500
         gradient_accumulation_steps = 4
-        warmup_iters = 1000
+        warmup_iters = 500
     elif train_tokens > 1_000_000:  # Medium dataset
         eval_interval = 350
         gradient_accumulation_steps = 5
-        warmup_iters = 750
+        warmup_iters = 400
     else:
         eval_interval = 250
         gradient_accumulation_steps = 6
-        warmup_iters = 500
+        warmup_iters = 300
 
     config = {
         # I/O Configuration
@@ -208,8 +208,8 @@ def setup_training_config(system_config: Dict[str, Any], args: argparse.Namespac
         "n_kv_head": n_kv_head,
         "n_embd": n_embd,
         "intermediate_size": 0,  # Auto-compute SwiGLU hidden dim
-        "dropout": 0.1,
-        "softcap": 30.0,
+        "dropout": 0.15,
+        "softcap": 15.0,
         "rope_theta": 10000.0,
 
         # Optimizer Configuration
@@ -225,7 +225,7 @@ def setup_training_config(system_config: Dict[str, Any], args: argparse.Namespac
         "decay_lr": True,
         "warmup_iters": warmup_iters,
         "min_lr": 1e-4,
-        "decay_fraction": 0.2,  # Final 20% of training is decay phase
+        "decay_fraction": 0.3,  # Final 30% of training is decay phase
 
         # Weights & Biases
         "wandb_log": False,

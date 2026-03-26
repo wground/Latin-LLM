@@ -1,0 +1,100 @@
+Loaded system config from latin_training_config.json
+Loading model from out-latin\ckpt.pt
+number of parameters: 31.78M
+Model loaded successfully. Best validation loss: 3.8612
+Latin GPT Sampling Configuration:
+   Device: cuda (bfloat16)
+   Compilation: disabled
+   TF32 optimization: enabled
+Loading custom Latin tokenizer
+   Vocabulary size: 16000
+   Tokenizer type: ByteLevelBPE
+Starting with prompt: 'arma virumque cano'
+
+Generating 3 samples with 150 tokens each:
+Temperature: 0.7, Top-k: 50
+================================================================================
+
+--- Sample 1 ---
+arma virumque cano,
+
+o, mihi! nam quid tibi, croesi,
+
+cum tibi cordubae
+
+graecae mineruae?
+
+quid tibi, croesi?
+
+quid tibi, croesi, croesi?
+
+quid tibi, croesi?
+
+quid tibi, croesi?
+
+quid mihi, croesi?
+
+quid tibi, croesi?
+
+quid tibi, croesi?
+
+quid tibi, croesi?
+
+quid tibi, croesi?
+
+quid tibi, croesi?
+
+quid tibi, croesi?
+
+quid tibi, croesi?
+
+quid tibi, c
+----------------------------------------
+
+--- Sample 2 ---
+arma virumque cano.
+
+finis.
+
+.b in hac quaestione, etc., usque ad et de spe et de re certa nihil praesumit.
+
+uers. .--
+
+uers. .-- qui, etc. haec est sententia, etc., usque ad sed in hac uita, de qua dicitur: qui seminat in carne, de carne metet corruptionem.
+
+ uers. .-- qui stat in domino, etc. qui de spe et de spe certa quaerit, et de re uera et de spe certa praesumit, de spe certa, non de spe.
+
+uers. .-- qui facit haec. de his qui non habent spem, quia et de his qui non habent spem.
+
+uers. .-- ne auertam. non est enim quod
+----------------------------------------
+
+--- Sample 3 ---
+arma virumque cano,
+medos, meschines, thais, croataeos,
+thais, agris, stabaldis, cazan, balla, zamalthanis,
+hirs, mazis, zambis, gaiard, gamis,
+basma, smyrn, croy, chiard, gabagnan,
+milere, manto, stabald, balsan, smolad,
+balthina, baline, zama, et alia multa.
+
+iam, quae cantantur, quae cantantur, quae cantantur,
+mille
+----------------------------------------
+
+Generated 3 samples successfully!
+
+Suggested Latin prompts to try:
+ 1. gallia est omnis diuisa in partes tres
+ 2. arma uirumque cano
+ 3. ueni, uidi, uici
+ 4. in principio erat uerbum
+ 5. senatus populusque romanus
+ 6. alea iacta est
+ 7. marcus tullius cicero
+ 8. imperator caesar
+ 9. res publica
+10. consul romanus
+
+To use a different prompt, modify the 'start' variable in D:\Documents\GitHub\Latin-LLM\src\sample_latin.py
+Or use: python3 sample_latin.py --start='your prompt here'

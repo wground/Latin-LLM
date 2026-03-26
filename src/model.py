@@ -375,15 +375,30 @@ class GPT(nn.Module):
         return mfu
 
     @torch.no_grad()
-    def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None):
+    def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None,
+                 repetition_penalty=1.2, repetition_window=64):
         """
         Take a conditioning sequence of indices idx (LongTensor of shape (b,t)) and complete
         the sequence max_new_tokens times, feeding the predictions back into the model each time.
+
+        Args:
+            repetition_penalty: Divide logits of recently-used tokens by this value (1.0 = off).
+            repetition_window: How many recent tokens to penalize.
         """
         for _ in range(max_new_tokens):
             idx_cond = idx if idx.size(1) <= self.config.block_size else idx[:, -self.config.block_size:]
             logits, _ = self(idx_cond)
             logits = logits[:, -1, :] / temperature
+            # Penalize tokens that appeared in the recent window
+            if repetition_penalty > 1.0 and idx.size(1) > 0:
+                window = idx[:, -repetition_window:]
+                for b in range(idx.size(0)):
+                    seen = set(window[b].tolist())
+                    for token_id in seen:
+                        if logits[b, token_id] > 0:
+                            logits[b, token_id] /= repetition_penalty
+                        else:
+                            logits[b, token_id] *= repetition_penalty
             if top_k is not None:
                 v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
                 logits[logits < v[:, [-1]]] = -float('Inf')

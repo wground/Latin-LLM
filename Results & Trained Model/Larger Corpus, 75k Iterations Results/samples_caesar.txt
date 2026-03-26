@@ -1,0 +1,73 @@
+Loaded system config from latin_training_config.json
+Loading model from out-latin\ckpt.pt
+number of parameters: 31.78M
+Model loaded successfully. Best validation loss: 3.8612
+Latin GPT Sampling Configuration:
+   Device: cuda (bfloat16)
+   Compilation: disabled
+   TF32 optimization: enabled
+Loading custom Latin tokenizer
+   Vocabulary size: 16000
+   Tokenizer type: ByteLevelBPE
+Starting with prompt: 'gallia est omnis divisa in partes tres'
+
+Generating 3 samples with 150 tokens each:
+Temperature: 0.7, Top-k: 50
+================================================================================
+
+--- Sample 1 ---
+gallia est omnis divisa in partes tres, quae sunt in europa, in europa, in europa, in scythia, in europa, in asia, in asia, in asia, in asia.
+
+in hac sunt ciuitates quae sunt a principio huius mundi usque ad finem mundi, de qua dicit apostolus: quoniam in ipso inhabitat omnis plenitudo diuinitatis corporaliter . et in prima fronte dicit: deus. in prima parte ponit duas, unam in toto, alteram in parte; in prima ponit tres, unam in toto. quod dicit: in prima parte dicit: deus, in alia parte. in secunda parte dicit: deus, in alia parte; in tertia parte, in altera parte. in tertia parte dicit: deus, in ista terra.
+
+in secunda parte dicit: deus
+----------------------------------------
+
+--- Sample 2 ---
+gallia est omnis divisa in partes tres diuisa, quae sunt quatuor, et sunt nouem, et sunt quinque. est autem prima pars hendeca in tres partes diuisa, id est, una, et est dimidia, et est dimidia, et est dimidia, et est dimidia, et est dimidia. unde dicit: quarta pars hendeca in partes duas diuisa est, quae est dimidia, et est dimidia, et est dimidia, et dimidia, et est dimidia, et est dimidia, et est dimidia. unde dicit: quarta pars hendeca in partes duas diuisa est. sexta pars hendeca in partes duas diuisa est. septima pars hendeca in partes duas diuisa est, et est dimidia,
+----------------------------------------
+
+--- Sample 3 ---
+gallia est omnis divisa in partes tres diuisa.
+
+pompeius.
+
+et est nomen in parte pro genere.
+
+pompeius.
+
+et est genus in parte, ut est hoc nomen in partibus tribus et tres partes in partibus tribus, ut est hoc nomen in partibus tribus et tres partes in partibus tribus et tres partes in partibus tribus.
+
+pompeius.
+
+et est nomen in partibus tribus et tres partes in partibus tribus et tres partes in partibus tribus.
+
+pompeius.
+
+et est nomen in partibus tribus et tres partes in partibus tribus.
+
+pompeius.
+
+et est nomen in partibus tribus et tres partes in partibus tribus.
+
+pompeius.
+
+et
+----------------------------------------
+
+Generated 3 samples successfully!
+
+Suggested Latin prompts to try:
+ 1. gallia est omnis diuisa in partes tres
+ 2. arma uirumque cano
+ 3. ueni, uidi, uici
+ 4. in principio erat uerbum
+ 5. senatus populusque romanus
+ 6. alea iacta est
+ 7. marcus tullius cicero
+ 8. imperator caesar
+ 9. res publica
+10. consul romanus
+
+To use a different prompt, modify the 'start' variable in D:\Documents\GitHub\Latin-LLM\src\sample_latin.py
+Or use: python3 sample_latin.py --start='your prompt here'

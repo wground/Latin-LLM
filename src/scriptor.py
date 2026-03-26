@@ -75,6 +75,7 @@ out_dir = 'out-latin'  # directory where Latin model checkpoints are saved
 max_new_tokens = 2000  # increased from 1000 for longer generations
 temperature = 0.7  # reduced from 0.8 for better quality with regularized model
 top_k = 50  # increased from 40 for more diverse sampling
+repetition_penalty = 1.2  # penalize recently-used tokens to avoid loops
 seed_base = int(time.time())  # base seed for variety
 
 # Load system-optimized configuration
@@ -191,7 +192,8 @@ def generate_text(model, prompt_text, encode_fn, decode_fn, generation_seed):
     # Generate text
     with torch.no_grad():
         with ctx:
-            y = model.generate(x, max_new_tokens, temperature=temperature, top_k=top_k)
+            y = model.generate(x, max_new_tokens, temperature=temperature, top_k=top_k,
+                               repetition_penalty=repetition_penalty)
             generated_text = decode_fn(y[0].tolist())
     
     return generated_text

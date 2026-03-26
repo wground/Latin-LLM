@@ -78,6 +78,7 @@ def parse_args():
     parser.add_argument('--max_new_tokens', type=int, default=200, help='Number of tokens per sample')
     parser.add_argument('--temperature', type=float, default=0.7, help='Sampling temperature')
     parser.add_argument('--top_k', type=int, default=50, help='Top-k sampling parameter')
+    parser.add_argument('--repetition_penalty', type=float, default=1.2, help='Repetition penalty (1.0 = off, 1.2 = default)')
     parser.add_argument('--seed', type=int, default=None, help='Random seed (if not set, uses current time)')
     return parser.parse_args()
 
@@ -91,6 +92,7 @@ num_samples = args.num_samples  # number of samples to generate
 max_new_tokens = args.max_new_tokens  # number of tokens to generate per sample
 temperature = args.temperature  # sampling temperature (0.6-0.8 good for regularized Latin model)
 top_k = args.top_k  # retain only top_k most likely tokens
+repetition_penalty = args.repetition_penalty  # penalize repeated tokens
 seed = args.seed if args.seed is not None else int(time.time())  # Use current time for randomness
 
 # Load system-optimized configuration
@@ -188,7 +190,7 @@ x = torch.tensor(start_ids, dtype=torch.long, device=device)[None, ...]
 
 # Generate samples
 print(f"\nGenerating {num_samples} samples with {max_new_tokens} tokens each:")
-print(f"Temperature: {temperature}, Top-k: {top_k}")
+print(f"Temperature: {temperature}, Top-k: {top_k}, Repetition penalty: {repetition_penalty}")
 print("=" * 80)
 
 with torch.no_grad():
@@ -201,7 +203,8 @@ with torch.no_grad():
                 torch.cuda.manual_seed(sample_seed)
             
             print(f"\n--- Sample {k+1} ---")
-            y = model.generate(x, max_new_tokens, temperature=temperature, top_k=top_k)
+            y = model.generate(x, max_new_tokens, temperature=temperature, top_k=top_k,
+                               repetition_penalty=repetition_penalty)
             generated_text = decode(y[0].tolist())
             print(generated_text)
             print('-' * 40)

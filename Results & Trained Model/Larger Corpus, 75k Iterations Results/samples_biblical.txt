@@ -1,0 +1,70 @@
+Loaded system config from latin_training_config.json
+Loading model from out-latin\ckpt.pt
+number of parameters: 31.78M
+Model loaded successfully. Best validation loss: 3.8612
+Latin GPT Sampling Configuration:
+   Device: cuda (bfloat16)
+   Compilation: disabled
+   TF32 optimization: enabled
+Loading custom Latin tokenizer
+   Vocabulary size: 16000
+   Tokenizer type: ByteLevelBPE
+Starting with prompt: 'in principio erat verbum'
+
+Generating 3 samples with 150 tokens each:
+Temperature: 0.8, Top-k: 50
+================================================================================
+
+--- Sample 1 ---
+in principio erat verbum.
+
+nempe, cum in principio erat uerbum, et uerbum erat apud deum, et deus erat uerbum, et omnia per ipsum facta sunt, et sine ipso factum est nihil, quia nihil ex nihilo, nihil sine patre, nihil a patre factum est, nihil in patre, nihil extra patrem, nihil extra patrem, nihil extra filium.
+
+item, cum in principio erat uerbum, id est, uita, et mundus per eum factus est, et mundus eum non cognouit, et mundus eum non cognouit: quomodo ergo erat tempus ad patrem? pater enim eius erat antequam fieret.
+
+denique, cum omnia per ipsum facta sunt, et sine ipso factum est nihil, quia sine ipso factum est nihil.
+
+sed forte dicis: erat tempus quando
+----------------------------------------
+
+--- Sample 2 ---
+in principio erat verbum. ] _ _ _ _ _ _ _
+
+_-. . et paulo post:
+
+ego eram lux et uita. _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ __ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+c_ _ _ _ _ _ _ _ _ 
+----------------------------------------
+
+--- Sample 3 ---
+in principio erat verbum autem erat deus, et uerbum erat apud deum et deus erat uerbum .
+
+caput xli. de eo quod scriptum est: et dixit deus, fiat firmamentum in medio firmamentum, et deus diuisit hominem a limo terrae .
+et iterum: et dixit deus: fiat firmamentum, et diuisit inter aquam et aquam .
+
+item de eo quod scriptum est: et fecit deus hominem ad imaginem dei .
+
+item de eo quod scriptum est: et fecit deus hominem ad imaginem suam , per isaiam prophetam: et fecit deus hominem ad imaginem suam, et benedixit deus, et ait: ego sum deus, et non est alius deus praeter me .
+
+item quod scriptum est: et fecit deus hominem ad imaginem dei, et facta est nox .
+
+item
+----------------------------------------
+
+Generated 3 samples successfully!
+
+Suggested Latin prompts to try:
+ 1. gallia est omnis diuisa in partes tres
+ 2. arma uirumque cano
+ 3. ueni, uidi, uici
+ 4. in principio erat uerbum
+ 5. senatus populusque romanus
+ 6. alea iacta est
+ 7. marcus tullius cicero
+ 8. imperator caesar
+ 9. res publica
+10. consul romanus
+
+To use a different prompt, modify the 'start' variable in D:\Documents\GitHub\Latin-LLM\src\sample_latin.py
+Or use: python3 sample_latin.py --start='your prompt here'

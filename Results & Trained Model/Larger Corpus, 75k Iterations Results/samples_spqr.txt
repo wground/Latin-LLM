@@ -1,0 +1,100 @@
+Loaded system config from latin_training_config.json
+Loading model from out-latin\ckpt.pt
+number of parameters: 31.78M
+Model loaded successfully. Best validation loss: 3.8612
+Latin GPT Sampling Configuration:
+   Device: cuda (bfloat16)
+   Compilation: disabled
+   TF32 optimization: enabled
+Loading custom Latin tokenizer
+   Vocabulary size: 16000
+   Tokenizer type: ByteLevelBPE
+Starting with prompt: 'senatus populusque romanus'
+
+Generating 3 samples with 150 tokens each:
+Temperature: 0.7, Top-k: 50
+================================================================================
+
+--- Sample 1 ---
+senatus populusque romanus ad me
+ingressus, quo me, mi frater, huc ades,
+cuncta simul atque haec, quae tibi dicta placent,
+pergant, perque omnis amores
+et faciles, et iocos, et lepores,
+et lepores, et lepores, et lepores,
+et lepores, et lepores, et lepores,
+et lepores, et lepores, et lepores,
+et lepores, et lepores, et lepores
+et lepores.
+
+ad marcus caesarem .
+
+de re publica .
+
+si de re publica non est hic sermo, ut nos, inquam, de re publica non est hic sermo, in quo non est omnis lepores
+----------------------------------------
+
+--- Sample 2 ---
+senatus populusque romanus,
+cura fuit, siccisque locis, quibus imperitabat,
+nobilis ut fuerat: sic tu sine fraude tuorum
+cunctaque cum populo romano bella gerebas.
+deditus a populo romano, qui se ab eis
+extabat, qui te deprenderat, ut tua semper
+membra forent, quo te possent abdere, teque
+admonuit, quo te possent auertere a fratre,
+ut tibi uelox esset uictoria. nam tua uirtus
+in uirtute fuit.
+
+mess.
+
+si tibi non placeret, non ille tuus mihi frater
+corporeo, quem tu non potes, arma daret.
+
+mess.
+
+quid tibi, roma
+----------------------------------------
+
+--- Sample 3 ---
+senatus populusque romanus
+
+cum aliis innumeros, etiam quos ipse uides,
+
+exanimes, animi, tumidi, ac paene beati
+
+conferre, et in mediis omnibus esse deum!
+
+sparte dei uirtus atque potentia, qua deus ipse
+
+deuotos, et nos, et tu, deus, esse facis?
+
+et tibi cum multis, et cum multis esse uidetur
+
+spes, et cum multis, et sua cuique deus.
+
+ad quae si forte putas, tua non bona, sed mala cernis
+
+fraude dei, cui uis, et tibi, et tibi, et tibi.
+
+atque utinam tam paruo tempore, non tam magno
+
+conueniret deus, quam
+----------------------------------------
+
+Generated 3 samples successfully!
+
+Suggested Latin prompts to try:
+ 1. gallia est omnis diuisa in partes tres
+ 2. arma uirumque cano
+ 3. ueni, uidi, uici
+ 4. in principio erat uerbum
+ 5. senatus populusque romanus
+ 6. alea iacta est
+ 7. marcus tullius cicero
+ 8. imperator caesar
+ 9. res publica
+10. consul romanus
+
+To use a different prompt, modify the 'start' variable in D:\Documents\GitHub\Latin-LLM\src\sample_latin.py
+Or use: python3 sample_latin.py --start='your prompt here'

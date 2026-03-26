@@ -3,11 +3,29 @@ Prepare Latin training data with custom tokenizer
 Creates a ByteLevelBPE tokenizer trained on the Latin corpus for better accuracy
 """
 import os
+import re
 import glob
 import pickle
 import numpy as np
 from pathlib import Path
 from tokenizers import ByteLevelBPETokenizer
+
+
+def clean_ocr_artifacts(text: str) -> str:
+    """Remove common OCR artifacts and formatting noise from Latin text."""
+    # Remove runs of underscores (OCR line artifacts)
+    text = re.sub(r'_{3,}', '', text)
+    # Remove runs of dashes used as formatting lines
+    text = re.sub(r'-{5,}', '', text)
+    # Remove stray brackets/braces that aren't part of text
+    text = re.sub(r'[{}\[\]]{2,}', '', text)
+    # Remove isolated single underscores surrounded by spaces (OCR blanks)
+    text = re.sub(r' _ ', ' ', text)
+    # Collapse runs of 3+ blank lines into 2
+    text = re.sub(r'\n{4,}', '\n\n\n', text)
+    # Remove lines that are just punctuation/whitespace (OCR noise)
+    text = re.sub(r'^[\s\.\-_\*=]+$', '', text, flags=re.MULTILINE)
+    return text
 
 # Configuration
 training_data_path = os.path.join(os.path.dirname(__file__), 'Training Data')
@@ -46,11 +64,12 @@ for txt_file in sorted(txt_files):
         with open(txt_file, 'r', encoding='utf-8') as f:
             file_content = f.read().strip()
             if file_content:  # Only add if file has content
+                file_content = clean_ocr_artifacts(file_content)
                 merged_data += file_content
                 merged_data += "\n\n"  # Separator between files
                 total_files_processed += 1
     except Exception as e:
-        print(f"  ⚠️  Error reading {rel_path}: {e}")
+        print(f"  Warning: Error reading {rel_path}: {e}")
         continue
 
 print(f"\nSuccessfully processed {total_files_processed} files")
