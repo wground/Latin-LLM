@@ -328,19 +328,57 @@ def get_hardware_peak_flops(system_config: Dict[str, Any], dtype: str) -> float:
 
         device_type = system_config["recommended_config"]["device"]
 
-        # Apple Silicon
+        # Apple Silicon — per-chip table keyed on (family, variant).
+        # Values are FP16 peak TFLOPS for the reference core count; scaled
+        # linearly by actual gpu_cores when available.
         if device_type == "mps" and gpu_devices:
+            rec_cfg = system_config.get("recommended_config", {})
+            family = (rec_cfg.get("apple_chip_family") or "").upper()
+            variant = (rec_cfg.get("apple_chip_variant") or "").capitalize()
+            cores = rec_cfg.get("apple_gpu_cores")
             gpu_name = gpu_devices[0].get("name", "").lower()
-            if "m4" in gpu_name:
-                return 18e12 if dtype == "float16" else 9e12
-            elif "m3" in gpu_name:
-                return 15e12 if dtype == "float16" else 7.5e12
-            elif "m2" in gpu_name:
-                return 13e12 if dtype == "float16" else 6.5e12
-            elif "m1" in gpu_name:
-                return 11e12 if dtype == "float16" else 5.5e12
-            else:
-                return 10e12
+
+            # (fp16_tflops, reference_gpu_cores)
+            apple_flops_table = {
+                ("M1", ""):      (5.2,  8),
+                ("M1", "Pro"):   (10.4, 16),
+                ("M1", "Max"):   (20.8, 32),
+                ("M1", "Ultra"): (42.0, 64),
+                ("M2", ""):      (7.2,  10),
+                ("M2", "Pro"):   (13.6, 19),
+                ("M2", "Max"):   (27.2, 38),
+                ("M2", "Ultra"): (54.4, 76),
+                ("M3", ""):      (8.2,  10),
+                ("M3", "Pro"):   (14.8, 18),
+                ("M3", "Max"):   (28.4, 40),
+                ("M3", "Ultra"): (56.8, 80),
+                ("M4", ""):      (9.2,  10),
+                ("M4", "Pro"):   (17.0, 20),
+                ("M4", "Max"):   (35.8, 40),
+                ("M5", ""):      (10.4, 10),
+                ("M5", "Pro"):   (19.0, 20),
+                ("M5", "Max"):   (40.0, 40),
+            }
+
+            entry = apple_flops_table.get((family, variant))
+
+            # Name-based fallback if sysctl didn't yield family/variant
+            if entry is None:
+                for (fam, var), val in apple_flops_table.items():
+                    key = f"{fam} {var}".strip().lower()
+                    if key and key in gpu_name:
+                        entry = val
+                        break
+
+            if entry is not None:
+                fp16_tflops, ref_cores = entry
+                if cores and ref_cores:
+                    fp16_tflops *= cores / ref_cores
+                fp16_flops = fp16_tflops * 1e12
+                # MPS uses FP16 autocast; FP32 path is ~half throughput.
+                return fp16_flops if dtype == "float16" else fp16_flops / 2
+
+            return 10e12  # Unknown Apple Silicon chip fallback
 
         # CUDA GPUs
         elif device_type == "cuda" and gpu_devices:
@@ -549,6 +587,8 @@ def main():
     parser.add_argument("--batch_size", type=int, help="Override batch size")
     parser.add_argument("--max_iters", type=int, default=75000, help="Maximum training iterations")
     parser.add_argument("--wandb", action="store_true", help="Enable Weights & Biases logging")
+    parser.add_argument("--no_compile", action="store_true",
+                        help="Disable torch.compile (useful on Windows/Triton issues or debugging)")
     args = parser.parse_args()
 
     print("LatinLLM Training Script")
@@ -560,6 +600,9 @@ def main():
 
     if args.wandb:
         config["wandb_log"] = True
+
+    if args.no_compile:
+        config["compile"] = False
 
     # Hardware peak FLOPS for MFU calculation
     peak_flops = get_hardware_peak_flops(system_config, config["dtype"])

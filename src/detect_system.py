@@ -6,11 +6,66 @@ Detects hardware capabilities, dependencies, and generates configuration for opt
 import torch
 import sys
 import os
+import re
 import json
 import importlib.util
 import subprocess
 import platform
 from typing import Dict, List, Any, Optional
+
+
+def _detect_apple_silicon_chip() -> Dict[str, Any]:
+    """
+    Detect specific Apple Silicon chip via sysctl. Returns dict with:
+    - chip_name: e.g. "Apple M3 Pro" (as reported by sysctl), or None if not Apple Silicon
+    - chip_family: "M1" | "M2" | "M3" | "M4" | "M5" | None
+    - chip_variant: "" | "Pro" | "Max" | "Ultra"
+    - gpu_cores: int, best-effort from system_profiler, or None
+    - unified_memory: int bytes, or None
+    """
+    result = {"chip_name": None, "chip_family": None, "chip_variant": "",
+              "gpu_cores": None, "unified_memory": None}
+
+    if platform.system() != "Darwin":
+        return result
+
+    try:
+        brand = subprocess.check_output(
+            ["sysctl", "-n", "machdep.cpu.brand_string"],
+            stderr=subprocess.DEVNULL, timeout=2
+        ).decode().strip()
+        result["chip_name"] = brand
+
+        # Parse family and variant (e.g. "Apple M3 Pro" -> family="M3", variant="Pro")
+        match = re.match(r"Apple\s+(M\d+)(?:\s+(Pro|Max|Ultra))?", brand, re.IGNORECASE)
+        if match:
+            result["chip_family"] = match.group(1).upper()
+            result["chip_variant"] = (match.group(2) or "").capitalize()
+    except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    try:
+        memsize = subprocess.check_output(
+            ["sysctl", "-n", "hw.memsize"],
+            stderr=subprocess.DEVNULL, timeout=2
+        ).decode().strip()
+        result["unified_memory"] = int(memsize)
+    except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+        pass
+
+    # Try to get GPU core count from system_profiler (slower, best-effort)
+    try:
+        sp_out = subprocess.check_output(
+            ["system_profiler", "SPDisplaysDataType"],
+            stderr=subprocess.DEVNULL, timeout=5
+        ).decode()
+        core_match = re.search(r"Total Number of Cores:\s*(\d+)", sp_out)
+        if core_match:
+            result["gpu_cores"] = int(core_match.group(1))
+    except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    return result
 
 def check_pytorch_installation() -> Dict[str, Any]:
     """Check PyTorch installation and capabilities."""
@@ -28,30 +83,39 @@ def check_pytorch_installation() -> Dict[str, Any]:
         info["mps_available"] = True
         info["backend_type"] = "mps"
         info["gpu_count"] = 1  # Apple Silicon has integrated GPU
-        
-        # Get Apple Silicon GPU information
+
         try:
-            # Check system information for Apple Silicon details
-            system_info = platform.uname()
-            processor = platform.processor()
-            
+            chip_info = _detect_apple_silicon_chip()
+            chip_name = chip_info.get("chip_name") or "Apple Silicon"
+
             device_info = {
                 "id": 0,
-                "name": f"Apple {processor} GPU" if processor else "Apple Silicon GPU",
+                "name": f"{chip_name} GPU",
                 "type": "integrated",
-                "backend": "mps"
+                "backend": "mps",
+                "chip_family": chip_info.get("chip_family"),
+                "chip_variant": chip_info.get("chip_variant"),
+                "gpu_cores": chip_info.get("gpu_cores"),
             }
-            
-            # Try to get memory information (this might not be available via PyTorch MPS)
-            try:
-                # On Apple Silicon, we can estimate based on unified memory
-                import psutil
-                total_memory = psutil.virtual_memory().total
-                # Estimate GPU memory as a portion of unified memory (conservative estimate)
-                device_info["memory_estimated"] = total_memory // 2  # Rough estimate
-            except ImportError:
+
+            # Use sysctl unified memory if available, else fall back to psutil
+            if chip_info.get("unified_memory"):
+                total_memory = chip_info["unified_memory"]
+            else:
+                try:
+                    import psutil
+                    total_memory = psutil.virtual_memory().total
+                except ImportError:
+                    total_memory = None
+
+            if total_memory:
+                device_info["unified_memory"] = total_memory
+                # Apple Silicon unified memory: GPU can safely use ~75% for training
+                # (rest needed for OS, CPU workloads, and system overhead)
+                device_info["memory_estimated"] = int(total_memory * 0.75)
+            else:
                 device_info["memory_estimated"] = "unknown"
-            
+
             info["gpu_devices"].append(device_info)
         except Exception as e:
             info["gpu_devices"].append({"id": 0, "error": str(e), "backend": "mps"})
@@ -115,10 +179,17 @@ def check_mixed_precision_support() -> Dict[str, bool]:
     }
     
     if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-        # Apple Silicon MPS supports float16 but not bfloat16 or tf32
+        # MPS supports fp16 universally. bf16 requires PyTorch 2.1+ and macOS 14+.
+        # Raw fp16 without a GradScaler is unsafe for training (overflow → NaN),
+        # so we probe bf16 at runtime and prefer it when available.
         support["float16"] = True
-        support["bfloat16"] = False
         support["tf32"] = False
+        try:
+            probe = torch.ones(4, 4, dtype=torch.bfloat16, device='mps')
+            _ = (probe @ probe).float().sum().item()
+            support["bfloat16"] = True
+        except Exception:
+            support["bfloat16"] = False
     elif torch.cuda.is_available():
         try:
             # Test bfloat16 support
@@ -291,48 +362,71 @@ def generate_training_config(pytorch_info: Dict, mixed_precision: Dict, gpu_test
         "enable_tf32": False
     }
     
+    # Windows: torch.compile / Triton has limited support — auto-disable unconditionally.
+    is_windows = platform.system() == "Windows"
+    config["os"] = platform.system().lower()
+
     # Check for Apple Silicon MPS first
     if pytorch_info.get("mps_available") and pytorch_info["backend_type"] == "mps" and gpu_tests["tensor_operations"]:
         config["device"] = "mps"
         config["backend"] = "mps"
-        config["compile"] = False  # Disable torch.compile for MPS due to compilation issues (VERY SAD!)
+        config["compile"] = False  # torch.compile still flaky on MPS as of PyTorch 2.9
         config["multi_gpu"] = False  # Apple Silicon is single integrated GPU
-        
-        # MPS supports float16 mixed precision
-        if mixed_precision["float16"]:
-            config["dtype"] = "float16"
-        
+
+        # Record detected chip for downstream FLOPS lookup
+        if pytorch_info["gpu_devices"]:
+            dev = pytorch_info["gpu_devices"][0]
+            config["apple_chip_family"] = dev.get("chip_family")
+            config["apple_chip_variant"] = dev.get("chip_variant", "")
+            config["apple_gpu_cores"] = dev.get("gpu_cores")
+
+        # bf16 is strongly preferred on MPS — wider dynamic range, no GradScaler
+        # needed, and raw fp16 training on MPS diverges because PyTorch's
+        # GradScaler is CUDA-only. If bf16 isn't supported, use fp32 rather
+        # than risking overflow.
+        if mixed_precision["bfloat16"]:
+            config["dtype"] = "bfloat16"
+        else:
+            config["dtype"] = "float32"
+
         # MPS doesn't support TF32 or fused AdamW
         config["enable_tf32"] = False
         config["use_fused_adamw"] = False
-        
-        # Adjust batch sizes based on estimated memory (optimized for larger vocab)
+
+        # Batch/block tuning uses the 75%-of-unified-memory estimate.
+        # M3+ benefits most from larger block_size; older chips cap earlier.
         if pytorch_info["gpu_devices"]:
             memory_info = pytorch_info["gpu_devices"][0]
+            chip_family = memory_info.get("chip_family")
+            modern_chip = chip_family in ("M3", "M4", "M5")
+
             if "memory_estimated" in memory_info and isinstance(memory_info["memory_estimated"], int):
                 estimated_memory = memory_info["memory_estimated"]
-                if estimated_memory > 32 * 1024**3:  # > 32GB estimated (high-end)
-                    config["recommended_batch_size"] = 20
+                if estimated_memory > 48 * 1024**3:  # > 48GB (Max/Ultra tier)
+                    config["recommended_batch_size"] = 24
                     config["recommended_block_size"] = 1024
-                elif estimated_memory > 16 * 1024**3:  # > 16GB estimated
-                    config["recommended_batch_size"] = 14
-                    config["recommended_block_size"] = 1024
-                elif estimated_memory > 8 * 1024**3:  # > 8GB estimated
-                    config["recommended_batch_size"] = 10
+                elif estimated_memory > 24 * 1024**3:  # > 24GB (Pro / high Max)
+                    config["recommended_batch_size"] = 16
+                    config["recommended_block_size"] = 1024 if modern_chip else 512
+                elif estimated_memory > 12 * 1024**3:  # > 12GB (base Pro)
+                    config["recommended_batch_size"] = 12
                     config["recommended_block_size"] = 512
-                else:  # <= 8GB estimated
-                    config["recommended_batch_size"] = 6
+                elif estimated_memory > 6 * 1024**3:  # > 6GB (base chips)
+                    config["recommended_batch_size"] = 8
+                    config["recommended_block_size"] = 512 if modern_chip else 256
+                else:
+                    config["recommended_batch_size"] = 4
                     config["recommended_block_size"] = 256
             else:
-                # Conservative defaults for Apple Silicon with larger vocab
                 config["recommended_batch_size"] = 6
                 config["recommended_block_size"] = 512
     
     elif pytorch_info["cuda_available"] and gpu_tests["tensor_operations"]:
         config["device"] = "cuda"
         config["backend"] = pytorch_info["backend_type"]
-        config["compile"] = True
-        
+        # torch.compile uses Triton, which has poor Windows support — disable there.
+        config["compile"] = not is_windows
+
         if pytorch_info["gpu_count"] > 1:
             config["multi_gpu"] = True
         
