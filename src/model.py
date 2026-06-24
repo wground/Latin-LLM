@@ -10,12 +10,16 @@ Architecture (vs original nanoGPT):
 - QK normalization for training stability
 - Logit soft-capping for numerical stability
 - No bias terms anywhere
+- Optional looped/recurrent depth (Ouro): iterate the shared block stack n_loops
+  times for effective depth n_layer*n_loops at no extra parameter cost, with input
+  re-injection and per-step deep supervision
 
 References:
 1) Andrej Karpathy's nanoChat: https://github.com/karpathy/nanochat
 2) Andrej Karpathy's nanoGPT: https://github.com/karpathy/nanoGPT
 3) LLaMA architecture: RoPE, SwiGLU, RMSNorm, GQA
 4) Muon optimizer: https://github.com/KellerJordan/Muon
+5) Ouro (looped language models): https://arxiv.org/abs/2510.25741
 
 Author: Willow Groundwater-Schuldt
 """
@@ -218,6 +222,15 @@ class GPTConfig:
     softcap: float = 30.0    # Output logit soft-capping (0 = disabled)
     rope_theta: float = 10000.0  # RoPE frequency base
 
+    # --- Looped / recurrent-depth computation (Ouro, arXiv:2510.25741) ---
+    # The n_layer unique blocks are iterated n_loops times, giving an effective depth of
+    # n_layer * n_loops with NO extra parameters. This buys capability in a
+    # data-constrained corpus without the overfitting risk of widening the model.
+    n_loops: int = 1                 # 1 = standard transformer (no recurrence)
+    loop_input_injection: bool = True  # re-add the token embedding at each loop iteration
+    per_step_loss: bool = True       # deep supervision: LM loss after every loop step
+    loop_loss_weighting: str = "uniform"  # "uniform" | "linear" (up-weight later steps)
+
     def __post_init__(self):
         # Default KV heads to full MHA if not specified
         if self.n_kv_head == 0:
@@ -261,10 +274,14 @@ class GPT(nn.Module):
 
         # Initialize weights
         self.apply(self._init_weights)
-        # Scale residual projections per GPT-2 paper
+        # Scale residual projections per GPT-2 paper. Use EFFECTIVE depth
+        # (n_layer * n_loops): with recurrence a shared block contributes to the residual
+        # stream n_loops times, so scale init by the total number of residual additions to
+        # keep the residual-stream variance controlled.
+        effective_depth = config.n_layer * config.n_loops
         for pn, p in self.named_parameters():
             if pn.endswith('c_proj.weight') or pn.endswith('down_proj.weight'):
-                torch.nn.init.normal_(p, mean=0.0, std=0.02 / math.sqrt(2 * config.n_layer))
+                torch.nn.init.normal_(p, mean=0.0, std=0.02 / math.sqrt(2 * effective_depth))
 
         print("number of parameters: %.2fM" % (self.get_num_params() / 1e6,))
 
@@ -280,28 +297,60 @@ class GPT(nn.Module):
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
+    def _readout(self, x, targets):
+        """Apply final norm + (tied) head with optional soft-cap, and CE loss if targets."""
+        x = self.transformer.ln_f(x)
+        if targets is not None:
+            logits = self.lm_head(x)
+            if self.config.softcap > 0:
+                logits = self.config.softcap * torch.tanh(logits / self.config.softcap)
+            loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), targets.reshape(-1), ignore_index=-1)
+            return logits, loss
+        # Inference: only compute logits for the last position
+        logits = self.lm_head(x[:, [-1], :])
+        if self.config.softcap > 0:
+            logits = self.config.softcap * torch.tanh(logits / self.config.softcap)
+        return logits, None
+
     def forward(self, idx, targets=None):
         b, t = idx.size()
         assert t <= self.config.block_size, f"Cannot forward sequence of length {t}, block size is only {self.config.block_size}"
 
         # Token embeddings only (no positional embeddings — RoPE handles position)
-        x = self.transformer.drop(self.transformer.wte(idx))
+        h0 = self.transformer.drop(self.transformer.wte(idx))
+        freqs = self.freqs_cis[:t]
+        n_loops = self.config.n_loops
 
-        # Forward through transformer blocks
-        for block in self.transformer.h:
-            x = block(x, self.freqs_cis)
-        x = self.transformer.ln_f(x)
+        x = h0
+        step_losses = []
+        for r in range(n_loops):
+            # Re-inject the input at each iteration so the shared stack can keep
+            # re-reading the prompt (Universal Transformer / Ouro style).
+            if self.config.loop_input_injection and r > 0:
+                x = x + h0
+            for block in self.transformer.h:
+                x = block(x, freqs)
+            # Deep supervision: read out and accumulate loss after every loop step.
+            if targets is not None and self.config.per_step_loss and r < n_loops - 1:
+                _, loss_r = self._readout(x, targets)
+                step_losses.append(loss_r)
 
-        if targets is not None:
-            logits = self.lm_head(x)
-            # Soft-cap output logits for numerical stability
-            if self.config.softcap > 0:
-                logits = self.config.softcap * torch.tanh(logits / self.config.softcap)
-            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)
+        # Final readout (always from the last loop step).
+        logits, final_loss = self._readout(x, targets)
+
+        if targets is None:
+            return logits, None
+
+        if self.config.per_step_loss and step_losses:
+            step_losses.append(final_loss)
+            losses = torch.stack(step_losses)
+            if self.config.loop_loss_weighting == "linear":
+                w = torch.arange(1, len(losses) + 1, device=losses.device, dtype=losses.dtype)
+                loss = (losses * w).sum() / w.sum()
+            else:  # uniform
+                loss = losses.mean()
         else:
-            # Inference: only compute logits for the last position
-            logits = self.lm_head(x[:, [-1], :])
-            loss = None
+            loss = final_loss
 
         return logits, loss
 
@@ -366,7 +415,8 @@ class GPT(nn.Module):
         N = self.get_num_params()
         cfg = self.config
         L, H, Q, T = cfg.n_layer, cfg.n_head, cfg.n_embd // cfg.n_head, cfg.block_size
-        flops_per_token = 6 * N + 12 * L * H * Q * T
+        # Looping runs the same blocks n_loops times, so per-token compute scales with it.
+        flops_per_token = (6 * N + 12 * L * H * Q * T) * cfg.n_loops
         flops_per_fwdbwd = flops_per_token * T
         flops_per_iter = flops_per_fwdbwd * fwdbwd_per_iter
         flops_achieved = flops_per_iter * (1.0 / dt)

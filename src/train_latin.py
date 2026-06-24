@@ -3,12 +3,15 @@ LatinLLM Training Script
 Trains a modernized GPT model on Latin text corpus using system-optimized configurations.
 Uses detect_system.py output for optimal hardware configuration.
 
-Architecture: RoPE, SwiGLU, GQA, RMSNorm, QK-norm (nanoChat-inspired)
-Optimizer: Muon + AdamW hybrid (CUDA) or AdamW (MPS/CPU)
+Architecture: RoPE, SwiGLU, GQA, RMSNorm, QK-norm (nanoChat-inspired), optional
+              looped/recurrent depth (Ouro, arXiv:2510.25741)
+Optimizer: Muon (with weight decay) + AdamW hybrid (CUDA) or AdamW (MPS/CPU)
 LR Schedule: Warmup-Stable-Decay (WSD)
+Checkpoints: ckpt.pt (latest, resumable) + ckpt_best.pt (best val loss)
 
 Usage:
     python3 train_latin.py [--config CONFIG_FILE] [--batch_size SIZE] [--max_iters ITERS]
+    python3 train_latin.py [--n_loops N] [--n_layer L] [--n_embd D] [--dropout P]
 
 Author: Willow Groundwater-Schuldt & Claude
 """
@@ -43,8 +46,10 @@ class Muon(torch.optim.Optimizer):
     Reference: https://github.com/KellerJordan/Muon
     """
 
-    def __init__(self, params, lr=0.02, momentum=0.95, nesterov=True, ns_steps=5):
-        defaults = dict(lr=lr, momentum=momentum, nesterov=nesterov, ns_steps=ns_steps)
+    def __init__(self, params, lr=0.02, momentum=0.95, nesterov=True, ns_steps=5,
+                 weight_decay=0.01):
+        defaults = dict(lr=lr, momentum=momentum, nesterov=nesterov, ns_steps=ns_steps,
+                        weight_decay=weight_decay)
         super().__init__(params, defaults)
 
     @staticmethod
@@ -64,6 +69,7 @@ class Muon(torch.optim.Optimizer):
         for group in self.param_groups:
             lr = group['lr']
             momentum = group['momentum']
+            weight_decay = group['weight_decay']
 
             for p in group['params']:
                 if p.grad is None:
@@ -87,6 +93,11 @@ class Muon(torch.optim.Optimizer):
                 if update.ndim >= 2:
                     update = self._orthogonalize(update, steps=group['ns_steps'])
                     update *= max(1, update.shape[0] / update.shape[1]) ** 0.5
+
+                # Decoupled weight decay (AdamW-style). Per "Muon is Scalable for LLM
+                # Training" (arXiv:2502.16982), decay is needed for stable scaling.
+                if weight_decay != 0.0:
+                    p.mul_(1.0 - lr * weight_decay)
 
                 p.add_(update, alpha=-lr)
 
@@ -208,13 +219,22 @@ def setup_training_config(system_config: Dict[str, Any], args: argparse.Namespac
         "n_kv_head": n_kv_head,
         "n_embd": n_embd,
         "intermediate_size": 0,  # Auto-compute SwiGLU hidden dim
-        "dropout": 0.15,
+        "dropout": 0.05,  # Lowered from 0.15: data-rich/repeated regime over-regularizes at 0.15
         "softcap": 15.0,
         "rope_theta": 10000.0,
+
+        # Looped / recurrent-depth computation (Ouro-style, arXiv:2510.25741).
+        # n_loops > 1 iterates the shared block stack to add effective depth WITHOUT
+        # adding parameters — the right lever for a data-constrained corpus.
+        "n_loops": 1,                 # 1 = standard transformer (no recurrence)
+        "loop_input_injection": True, # re-inject token embedding at each loop iteration
+        "per_step_loss": True,        # deep supervision: LM loss after every loop step
+        "loop_loss_weighting": "uniform",  # "uniform" or "linear" (up-weight later steps)
 
         # Optimizer Configuration
         "learning_rate": 3e-4 if vocab_size > 12000 else 4e-4,
         "muon_lr": 0.02,  # Muon base LR (only used on CUDA)
+        "muon_weight_decay": 0.01,  # decoupled weight decay for Muon matrices
         "max_iters": args.max_iters,
         "weight_decay": 0.05,
         "beta1": 0.9,
@@ -233,7 +253,11 @@ def setup_training_config(system_config: Dict[str, Any], args: argparse.Namespac
         "wandb_run_name": f"latin-gpt-v{vocab_size // 1000}k",
 
         # Early Stopping Configuration
-        "early_stopping": True,
+        # Default OFF for the lowest-loss objective: the WSD decay phase delivers the
+        # biggest val-loss drop, so we want to always run through it. When enabled, the
+        # patience counter is only armed during the decay phase (see training loop), so a
+        # plateau in the long constant-LR stable phase can't truncate the run early.
+        "early_stopping": False,
         "patience": 15,
         "min_delta": 0.005,
 
@@ -263,23 +287,49 @@ def setup_training_config(system_config: Dict[str, Any], args: argparse.Namespac
 
 # --- Data Loading ---
 
+# Cache one read-only memmap per split. The previous code re-opened the .bin file on
+# every micro-step, which is a measurable stall in the training loop; the memmap header
+# only needs to be parsed once and the OS page cache handles the actual reads.
+_DATA_CACHE: Dict[str, np.memmap] = {}
+
+
+def _get_split_data(split: str) -> np.memmap:
+    if split not in _DATA_CACHE:
+        filename = os.path.join("gpt_data_latin", f"{split}.bin")
+        if not os.path.exists(filename):
+            raise FileNotFoundError(f"Data file {filename} not found. Run prepare_latin.py first.")
+        _DATA_CACHE[split] = np.memmap(filename, dtype=np.uint16, mode='r')
+    return _DATA_CACHE[split]
+
+
 def get_batch(split: str, config: Dict[str, Any]) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Load a batch of data from the Latin corpus."""
-    data_dir = "gpt_data_latin"
-    filename = os.path.join(data_dir, f"{split}.bin")
-    if not os.path.exists(filename):
-        raise FileNotFoundError(f"Data file {filename} not found. Run prepare_latin.py first.")
+    """Load a batch of contiguous windows from the corpus.
 
-    data = np.memmap(filename, dtype=np.uint16, mode='r')
-    ix = torch.randint(len(data) - config["block_size"], (config["batch_size"],))
+    The memmap is cached across calls and the batch is built with a single vectorized
+    gather (no Python per-sample loop). The next-batch copy is issued non-blocking on
+    CUDA; because the training loop fetches the next batch before calling backward(),
+    that copy overlaps compute.
+    """
+    data = _get_split_data(split)
+    block_size = config["block_size"]
+    batch_size = config["batch_size"]
 
-    x = torch.stack([torch.from_numpy((data[i:i + config["block_size"]]).astype(np.int64)) for i in ix])
-    y = torch.stack([torch.from_numpy((data[i + 1:i + 1 + config["block_size"]]).astype(np.int64)) for i in ix])
+    # torch RNG (seeded via manual_seed) for reproducible window starts.
+    ix = torch.randint(len(data) - block_size, (batch_size,)).numpy()
+    # Vectorized gather: (batch_size, block_size + 1), then split into inputs/targets.
+    idx = ix[:, None] + np.arange(block_size + 1, dtype=np.int64)[None, :]
+    seq = torch.from_numpy(data[idx].astype(np.int64))
+    # .contiguous(): the slices below are non-contiguous views; the model's loss does
+    # targets.view(-1), and pin_memory()/non_blocking H2D both want contiguous tensors.
+    x = seq[:, :-1].contiguous()
+    y = seq[:, 1:].contiguous()
 
     if config["device"] == 'cuda':
-        x, y = x.pin_memory().to(config["device"], non_blocking=True), y.pin_memory().to(config["device"], non_blocking=True)
+        x = x.pin_memory().to(config["device"], non_blocking=True)
+        y = y.pin_memory().to(config["device"], non_blocking=True)
     else:
-        x, y = x.to(config["device"]), y.to(config["device"])
+        x = x.to(config["device"])
+        y = y.to(config["device"])
 
     return x, y
 
@@ -489,8 +539,11 @@ def get_lr(it: int, config: Dict[str, Any]) -> float:
     if it < decay_start:
         return max_lr
 
-    # Phase 3: Linear decay
+    # Phase 3: Linear decay. Clamp progress to [0, 1] so the LR can never overshoot
+    # max_lr or go below min_lr (a negative LR corrupts weights) — e.g. when resuming a
+    # checkpoint whose iter_num already exceeds max_iters.
     progress = (it - decay_start) / max(1, max_iters - decay_start)
+    progress = min(1.0, max(0.0, progress))
     return min_lr + (max_lr - min_lr) * (1.0 - progress)
 
 
@@ -589,6 +642,14 @@ def main():
     parser.add_argument("--wandb", action="store_true", help="Enable Weights & Biases logging")
     parser.add_argument("--no_compile", action="store_true",
                         help="Disable torch.compile (useful on Windows/Triton issues or debugging)")
+    # Looped / recurrent-depth experiment overrides (Ouro, arXiv:2510.25741)
+    parser.add_argument("--n_loops", type=int, help="Recurrence count; effective depth = n_layer * n_loops")
+    parser.add_argument("--no_per_step_loss", action="store_true", help="Disable deep supervision across loop steps")
+    parser.add_argument("--loop_loss_weighting", choices=["uniform", "linear"], help="How to weight per-step losses")
+    # Model-size overrides (Tier 3): size by hand instead of the vocab-derived defaults
+    parser.add_argument("--n_layer", type=int, help="Override number of unique transformer layers")
+    parser.add_argument("--n_embd", type=int, help="Override embedding dimension")
+    parser.add_argument("--dropout", type=float, help="Override dropout")
     args = parser.parse_args()
 
     print("LatinLLM Training Script")
@@ -597,6 +658,14 @@ def main():
     # Load system configuration
     system_config = load_system_config(args.config)
     config = setup_training_config(system_config, args)
+
+    # Apply explicit CLI overrides (take precedence over auto-derived defaults).
+    for key in ("n_loops", "n_layer", "n_embd", "dropout", "loop_loss_weighting"):
+        val = getattr(args, key)
+        if val is not None:
+            config[key] = val
+    if args.no_per_step_loss:
+        config["per_step_loss"] = False
 
     if args.wandb:
         config["wandb_log"] = True
@@ -614,6 +683,10 @@ def main():
     # Print configuration
     print(f"Device: {config['device']} ({config['dtype']})")
     print(f"Model: {config['n_layer']} layers, {config['n_head']} heads ({config['n_kv_head']} KV), {config['n_embd']} embd")
+    if config["n_loops"] > 1:
+        eff = config['n_layer'] * config['n_loops']
+        print(f"Looped: n_loops={config['n_loops']} -> effective depth {eff} "
+              f"(per_step_loss={config['per_step_loss']}, weighting={config['loop_loss_weighting']})")
     print(f"Architecture: RoPE + SwiGLU + GQA + RMSNorm + QK-norm")
     print(f"Optimizer: {'Muon + AdamW hybrid' if use_muon else 'AdamW'}")
     print(f"LR Schedule: WSD (warmup={config['warmup_iters']}, decay={config['decay_fraction']*100:.0f}%)")
@@ -676,6 +749,10 @@ def main():
         dropout=config["dropout"],
         softcap=config["softcap"],
         rope_theta=config["rope_theta"],
+        n_loops=config["n_loops"],
+        loop_input_injection=config["loop_input_injection"],
+        per_step_loss=config["per_step_loss"],
+        loop_loss_weighting=config["loop_loss_weighting"],
     )
 
     iter_num = 0
@@ -694,7 +771,8 @@ def main():
 
         # Use checkpoint model args (handles architecture compatibility)
         for k in ['n_layer', 'n_head', 'n_kv_head', 'n_embd', 'intermediate_size',
-                   'block_size', 'vocab_size', 'dropout', 'softcap', 'rope_theta']:
+                   'block_size', 'vocab_size', 'dropout', 'softcap', 'rope_theta',
+                   'n_loops', 'loop_input_injection', 'per_step_loss', 'loop_loss_weighting']:
             if k in checkpoint_model_args:
                 model_args[k] = checkpoint_model_args[k]
 
@@ -730,7 +808,8 @@ def main():
 
     if use_muon:
         param_groups = raw_model.get_param_groups()
-        muon_optimizer = Muon(param_groups['muon_params'], lr=config['muon_lr'], momentum=0.95, nesterov=True)
+        muon_optimizer = Muon(param_groups['muon_params'], lr=config['muon_lr'], momentum=0.95,
+                              nesterov=True, weight_decay=config['muon_weight_decay'])
 
         import inspect
         fused_available = 'fused' in inspect.signature(torch.optim.AdamW).parameters
@@ -807,6 +886,23 @@ def main():
     local_iter_num = 0
     running_mfu = -1.0
 
+    def save_checkpoint(filename):
+        """Write a full resumable checkpoint (model + optimizer state) to out_dir."""
+        ckpt = {
+            'model': raw_model.state_dict(),
+            'model_args': model_args,
+            'iter_num': iter_num,
+            'best_val_loss': best_val_loss,
+            'config': config,
+            'use_muon': use_muon,
+        }
+        if use_muon:
+            ckpt['muon_optimizer'] = muon_optimizer.state_dict()
+            ckpt['adamw_optimizer'] = adamw_optimizer.state_dict()
+        else:
+            ckpt['optimizer'] = optimizer.state_dict()
+        torch.save(ckpt, os.path.join(config["out_dir"], filename))
+
     while True:
         # Set learning rate (WSD schedule)
         lr = get_lr(iter_num, config) if config["decay_lr"] else config["learning_rate"]
@@ -842,40 +938,39 @@ def main():
                     "mfu": running_mfu * 100,
                 })
 
-            # Early stopping logic
+            # Single source of truth for "did val loss improve?"
+            improved = val_loss < (best_val_loss - config["min_delta"])
+            is_best = val_loss < best_val_loss
+            if is_best:
+                best_val_loss = val_loss
+
+            # Checkpointing (skip iter 0).
+            #   ckpt.pt      -> rolling resume state (latest)
+            #   ckpt_best.pt -> the best model seen, written ONLY on improvement so the
+            #                   best generalizer is never clobbered by a later worse step.
+            if iter_num > 0:
+                if config["always_save_checkpoint"]:
+                    save_checkpoint('ckpt.pt')
+                    print(f"Saved rolling checkpoint to {config['out_dir']}/ckpt.pt")
+                if is_best:
+                    save_checkpoint('ckpt_best.pt')
+                    print(f"New best val loss {best_val_loss:.4f} -> saved {config['out_dir']}/ckpt_best.pt")
+
+            # Early stopping: only arm the patience counter once we're in the WSD decay
+            # phase. A plateau during the long constant-LR stable phase is expected and
+            # must not truncate the run before decay (which delivers the biggest drop).
             if config["early_stopping"] and iter_num > 0:
-                if val_loss < best_val_loss - config["min_delta"]:
-                    best_val_loss = val_loss
-                    patience_counter = 0
-                    print(f"New best validation loss: {best_val_loss:.4f}")
-                else:
-                    patience_counter += 1
-                    print(f"Patience: {patience_counter}/{config['patience']} (val: {val_loss:.4f}, best: {best_val_loss:.4f})")
-
-                    if patience_counter >= config["patience"]:
-                        print(f"Early stopping triggered after {patience_counter} evaluations without improvement")
-                        print(f"   Best validation loss: {best_val_loss:.4f}")
-                        break
-
-            if val_loss < best_val_loss or config["always_save_checkpoint"]:
-                if not config["early_stopping"]:
-                    best_val_loss = val_loss
-                if iter_num > 0:
-                    ckpt = {
-                        'model': raw_model.state_dict(),
-                        'model_args': model_args,
-                        'iter_num': iter_num,
-                        'best_val_loss': best_val_loss,
-                        'config': config,
-                        'use_muon': use_muon,
-                    }
-                    if use_muon:
-                        ckpt['muon_optimizer'] = muon_optimizer.state_dict()
-                        ckpt['adamw_optimizer'] = adamw_optimizer.state_dict()
+                decay_start = int(config["max_iters"] * (1.0 - config["decay_fraction"]))
+                if iter_num >= decay_start:
+                    if improved:
+                        patience_counter = 0
                     else:
-                        ckpt['optimizer'] = optimizer.state_dict()
-                    print(f"Saving checkpoint to {config['out_dir']}")
-                    torch.save(ckpt, os.path.join(config["out_dir"], 'ckpt.pt'))
+                        patience_counter += 1
+                        print(f"Patience: {patience_counter}/{config['patience']} (val: {val_loss:.4f}, best: {best_val_loss:.4f})")
+                        if patience_counter >= config["patience"]:
+                            print(f"Early stopping triggered after {patience_counter} evaluations without improvement")
+                            print(f"   Best validation loss: {best_val_loss:.4f}")
+                            break
 
         if iter_num == 0 and config["eval_only"]:
             break
