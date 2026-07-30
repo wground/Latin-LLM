@@ -1,0 +1,108 @@
+willow@M5-MacBook-Pro Latin-LLM-main % cd src && /usr/bin/python3 sample_latin.py
+✅ Loaded system config from latin_training_config.json
+Loading model from out-latin/ckpt.pt
+number of parameters: 31.78M
+Model loaded successfully. Best validation loss: 3.8960
+🏛️  Latin GPT Sampling Configuration:
+   Device: mps (bfloat16)
+   Compilation: disabled
+✅ Loading custom Latin tokenizer
+   Vocabulary size: 16000
+   Tokenizer type: ByteLevelBPE
+Starting with prompt: 'caesar '
+
+Generating 5 samples with 200 tokens each:
+Temperature: 0.7, Top-k: 50, Repetition penalty: 1.2
+================================================================================
+
+--- Sample 1 ---
+caesar Iulius caesar, quod omnibus suis partibus bellum inferre non dubitabat; et ipse ad caesarem proficiscens, cum legionibus in hiberna transgressus est.
+
+quibus rebus cognitis caesar in hispaniam contendit ac sibi residit; quae res celeriter a gallia desciuit atque ablegata est. caesar, uti constituerat, iugurtham cum germanis, qui ex mauretania cum finitimis copiis uenerant, ad eum conuenere; simul perlicere se non posse existimans, quod propter magnitudinem loci et hostium copias et proelium in hispania suscepisset, ad eas res exspectandas animum intendit. hoc eo consilio fecit, quo minus, si quos ex suis castris transmisisset, proelio decertare conarentur. nam ubi opportunitatem reperiendi belli quaesiuerunt, et suos et suos et suorum animos aequo animo sustinuerunt; quibus et per exploratores et per familiares suos cognitis per finitimos legatos satis exploratam esse existimationem existimabant.
+
+at iugurtha,
+----------------------------------------
+
+--- Sample 2 ---
+caesar Iulius caesar
+qui solus magnus regesque et regna regebat,
+nam senior iuuenis bello ciuilibus annis
+innumerabiliter natus erat. quod nomen, ut arruns
+dicat et ut populum doceat romana iuuentus?
+non ita sunt tales: primus puer ante latinos
+notus in italia qui tunc sub bella repressis
+profuit externis bellis: post proelia uictor
+accepit caesar et iam noua bella gerebat.
+inde igitur pueri, populique et regna regentes
+ad sua conuersi, quamuis uirtute paratis,
+scipiadas acies, quas non, sed plurima, gentes
+admonet imperiumque suum romanaque bella
+innumerabiliter portat, quae causa duobus
+proeliis fuerat: primo, cum grandine uasto
+pulsatus libyco, cecidit prope flumina pontus.
+inde, ubi iam dudum bellis ciuilibus usus
+est, uictos animos, et tempora fecerat unum,
+addiderat bellum
+----------------------------------------
+
+--- Sample 3 ---
+caesar <.
+
+mitanus
+non est hoc mihi consilium, sed haec tibi dico libentiorem fore. nam cum ad te scriberem de pompei litteris et de parthis atque arabibus, qui me a caesare, si ad te scriberem, inuitarunt, nihil erat dubium quin pompeius esset in epirum uenturus; quem quidem ego ab eo ualde exspecto.
+
+scr. in tusculano iu k. sext a. .
+cicero attico sal.
+
+addi mihi quidem, ut scribis, litteras tuas; sed nunc non sunt meae, sed ex tuis litteris cognoui me ad te antea scripsisse; nam et litteras meas legi tuas, quas per epistulam misi; misi etiam litteras ad dionysium; de quo tu scis quid mihi placeat. sed, ut uidetur, ego cum tuis mandatis profectus sum et inde te exspecto.
+
+scr. in tusculano m. quint a. .
+cicero attico sal.
+
+
+----------------------------------------
+
+--- Sample 4 ---
+caesar  scotorum rex, sichorum princeps,
+et in gallia natus, et alamannicus, achiuus,
+prisca gens, quorum pars est, germania maior.
+regs, qui regnauit, bis dux fuit olim ab austris:
+nec minus his, quos duxerat ille, fuere,
+quos pater et patriae per regna petiuit adire.
+filius hincque nepos magni tunc, caesar ad illum
+consiliis, opibusque datis huc aduenerant, ut,
+hispaniae regni potiens, non inde uocatus
+egregius, patrias posset componere sedes;
+et postquam fratrem genuit de stirpe philippi:
+non iam regna dedit, sed regnum in sede parentum:
+quod satis est, quamuis gentes superasse, tamen quas
+filius imperium regno perduxit ad auras.
+nam qua se primum caesar sub regibus illis
+inuitauit, talem belli sub fine reliquit.
+exul ab italia rediens, mox inde
+----------------------------------------
+
+--- Sample 5 ---
+caesar Iulius octauianus, cum de his rebus loqueretur, et ad senatum relasset, neque se satis recte facere posse de illis, qui ex uoluntate populi romani bellum gessissent, neque se propter illos in armis futurum.
+
+scr. romae mense maio a.u.c. . cicero cicero marcus sallustio sal.
+ego uero non tam te quam te, gaius caesari, laudo, quam, quia me hercule, quod tu quidem uideris, laudo, quod pro nobis optime mereris, et cupio mihi ignoscas et in meis litteris et in tuis uerbis, quibus me in omni re tua plurimum ualere gaudeo: id uelim existimes, te, ne quid sit—; sed tamen nescio quo modo. de me nihil dicam: est quaedam in istis malis fortuna, quae nos non amet, nisi qua uiuimus; habet enim quandam dignitatem suam, humanitatem, clementiam; quam quidem sic sibi esse dicit, ut ego nihil esse possim sine causa? quid si quis mihi dicat se
+----------------------------------------
+
+Generated 5 samples successfully!
+
+Suggested Latin prompts to try:
+ 1. gallia est omnis diuisa in partes tres
+ 2. arma uirumque cano
+ 3. ueni, uidi, uici
+ 4. in principio erat uerbum
+ 5. senatus populusque romanus
+ 6. alea iacta est
+ 7. marcus tullius cicero
+ 8. imperator caesar
+ 9. res publica
+10. consul romanus
+
+To use a different prompt, modify the 'start' variable in /Users/willow/Documents/Programming/Latin-LLM-main/src/sample_latin.py
+Or use: python3 sample_latin.py --start='your prompt here'
+willow@M5-MacBook-Pro src % 
