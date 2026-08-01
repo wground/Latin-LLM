@@ -2,90 +2,53 @@
 Scriptor - Interactive Latin GPT Writing Assistant
 An interactive writing assistant for Latin text generation with memory and optimized text delivery
 """
-import os
-import json
-import pickle
+import argparse
 import time
 from contextlib import nullcontext
 import torch
-from tokenizers import ByteLevelBPETokenizer
 
 # Import local model
+import paths
+from artifacts import (load_latin_tokenizer, load_model as _load_checkpoint,
+                       load_system_config, resolve_checkpoint, special_token_ids)
 from model import GPTConfig, GPT
 
-def load_system_config(config_path: str = "latin_training_config.json"):
-    """Load system configuration from detect_system.py output."""
-    if not os.path.exists(config_path):
-        print(f"⚠️  Config file {config_path} not found!")
-        print("Run 'python3 detect_system.py' first to generate system config.")
-        print("Using default CPU configuration...")
-        return {
-            "recommended_config": {
-                "device": "cpu",
-                "dtype": "float32",
-                "compile": False,
-                "backend": "cpu",
-                "enable_tf32": False
-            }
-        }
-    
-    with open(config_path, 'r') as f:
-        config = json.load(f)
-    
-    print(f"✅ Loaded system config from {config_path}")
-    return config
 
-def load_latin_tokenizer(data_dir: str = "gpt_data_latin"):
-    """Load the custom Latin tokenizer and return encode/decode functions."""
-    meta_path = os.path.join(data_dir, "meta.pkl")
-    
-    if not os.path.exists(meta_path):
-        print(f"❌ Custom tokenizer not found at {meta_path}")
-        print("You must run 'python3 prepare_latin.py' first to create custom tokenizer")
-        print("Cannot continue without custom Latin tokenizer.")
-        exit(1)
-    
-    # Load tokenizer metadata
-    with open(meta_path, "rb") as f:
-        meta = pickle.load(f)
-    
-    tokenizer_config = meta["tokenizer_config"]
-    print(f"✅ Loading custom Latin tokenizer")
-    print(f"   Vocabulary size: {meta['vocab_size']}")
-    print(f"   Tokenizer type: {tokenizer_config['type']}")
-    
-    # Load the actual tokenizer
-    tokenizer = ByteLevelBPETokenizer(
-        tokenizer_config["vocab_file"],
-        tokenizer_config["merges_file"]
-    )
-    
-    # Return encode/decode functions
-    def encode(text):
-        return tokenizer.encode(text).ids
-    
-    def decode(ids):
-        return tokenizer.decode(ids)
-    
-    return encode, decode
+def parse_args():
+    parser = argparse.ArgumentParser(description="Interactive Latin writing assistant")
+    parser.add_argument('--max_new_tokens', type=int, default=2000,
+                        help='Upper bound on tokens per turn; generation stops early at EOS')
+    parser.add_argument('--temperature', type=float, default=0.7)
+    parser.add_argument('--top_k', type=int, default=50)
+    parser.add_argument('--top_p', type=float, default=None, help='Nucleus sampling threshold')
+    parser.add_argument('--min_p', type=float, default=None, help='Min-p sampling threshold')
+    parser.add_argument('--repetition_penalty', type=float, default=1.0,
+                        help='1.0 = off (default)')
+    paths.add_path_args(parser, include_checkpoint=True)
+    return parser.parse_args()
+
+
+args = parse_args()
 
 # -----------------------------------------------------------------------------
 # Latin-specific configuration for interactive writing
-out_dir = 'out-latin'  # directory where Latin model checkpoints are saved
-max_new_tokens = 2000  # increased from 1000 for longer generations
-temperature = 0.7  # reduced from 0.8 for better quality with regularized model
-top_k = 50  # increased from 40 for more diverse sampling
-repetition_penalty = 1.2  # penalize recently-used tokens to avoid loops
+out_dir = args.out_dir  # directory where Latin model checkpoints are saved
+max_new_tokens = args.max_new_tokens
+temperature = args.temperature
+top_k = args.top_k
+repetition_penalty = args.repetition_penalty
 seed_base = int(time.time())  # base seed for variety
 
 # Load system-optimized configuration
 system_config = load_system_config()
 recommended = system_config["recommended_config"]
 
-device = recommended["device"]
-dtype = recommended["dtype"] 
+device = args.device or recommended["device"]
+dtype = recommended["dtype"]
 compile = recommended["compile"]
 enable_tf32 = recommended.get("enable_tf32", False)
+if device == 'cpu':
+    dtype = 'float32'
 # -----------------------------------------------------------------------------
 
 # Apply hardware optimizations based on detected system
@@ -104,28 +67,15 @@ ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torc
 ctx = nullcontext() if device_type == 'cpu' else torch.amp.autocast(device_type=device_type, dtype=ptdtype)
 
 def load_model():
-    """Load the trained Latin model"""
-    ckpt_path = os.path.join(out_dir, 'ckpt.pt')
-    if not os.path.exists(ckpt_path):
-        print(f"Error: No checkpoint found at {ckpt_path}")
-        print("Make sure you have trained the model first using train_latin.py")
+    """Load the trained Latin model (defaults to ckpt_best.pt)"""
+    try:
+        ckpt_path = resolve_checkpoint(out_dir, args.checkpoint)
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
         exit(1)
-    
-    print(f"Loading model from {ckpt_path}")
-    checkpoint = torch.load(ckpt_path, map_location=device, weights_only=False)
-    gptconf = GPTConfig(**checkpoint['model_args'])
-    model = GPT(gptconf)
-    state_dict = checkpoint['model']
-    
-    # Handle potential module prefix from compiled models
-    unwanted_prefix = '_orig_mod.'
-    for k, v in list(state_dict.items()):
-        if k.startswith(unwanted_prefix):
-            state_dict[k[len(unwanted_prefix):]] = state_dict.pop(k)
-    
-    model.load_state_dict(state_dict)
-    print(f"Model loaded successfully. Best validation loss: {checkpoint.get('best_val_loss', 'unknown'):.4f}")
-    
+
+    model, _ = _load_checkpoint(ckpt_path, device, GPT, GPTConfig)
+
     model.eval()
     model.to(device)
 
@@ -175,27 +125,30 @@ def trim_to_whitespace(text: str) -> str:
     # If no whitespace found, return as is (shouldn't happen with proper Latin text)
     return text
 
-def generate_text(model, prompt_text, encode_fn, decode_fn, generation_seed):
+def generate_text(model, prompt_text, encode_fn, decode_fn, generation_seed, eos_id):
     """Generate text based on the given prompt"""
     # Set seed for this generation
     torch.manual_seed(generation_seed)
     if device == 'cuda':
         torch.cuda.manual_seed(generation_seed)
-    
+
     # Encode the prompt
     start_ids = encode_fn(prompt_text)
     if len(start_ids) == 0:
-        # Handle empty prompts - use token ID 1 as fallback
-        start_ids = [1]
+        # Empty prompt: seed with EOS, the token that precedes every document start.
+        # (The old fallback, id 1 = <|pad|>, never occurs in training data.)
+        start_ids = [eos_id]
     x = torch.tensor(start_ids, dtype=torch.long, device=device)[None, ...]
-    
-    # Generate text
+
+    # Generate text. EOS stops the turn early rather than padding out to max_new_tokens.
     with torch.no_grad():
         with ctx:
             y = model.generate(x, max_new_tokens, temperature=temperature, top_k=top_k,
-                               repetition_penalty=repetition_penalty)
+                               top_p=args.top_p, min_p=args.min_p,
+                               repetition_penalty=repetition_penalty,
+                               eos_token_id=eos_id)
             generated_text = decode_fn(y[0].tolist())
-    
+
     return generated_text
 
 def main():
@@ -211,7 +164,8 @@ def main():
     
     # Load model and tokenizer
     model = load_model()
-    encode, decode = load_latin_tokenizer()
+    encode, decode, meta = load_latin_tokenizer(args.data_dir)
+    eos_id = special_token_ids(meta)["eos"]
     
     # Get initial prompt from user
     print("\nEnter your initial prompt to start writing:")
@@ -232,7 +186,7 @@ def main():
         
         # Generate text based on current context (including all previous output)
         generation_seed = seed_base + generation_count
-        full_text = generate_text(model, current_text, encode, decode, generation_seed)
+        full_text = generate_text(model, current_text, encode, decode, generation_seed, eos_id)
         
         # Extract only the newly generated portion
         if current_text:

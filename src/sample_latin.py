@@ -2,73 +2,16 @@
 Sample from a trained Latin GPT model
 Uses system detection for optimal hardware configuration.
 """
-import os
-import json
-import pickle
 import argparse
 import time
 from contextlib import nullcontext
 import torch
-from tokenizers import ByteLevelBPETokenizer
 
 # Import local model
+import paths
+from artifacts import (load_latin_tokenizer, load_model, load_system_config,
+                       resolve_checkpoint, special_token_ids)
 from model import GPTConfig, GPT
-
-def load_system_config(config_path: str = "latin_training_config.json"):
-    """Load system configuration from detect_system.py output."""
-    if not os.path.exists(config_path):
-        print(f"⚠️  Config file {config_path} not found!")
-        print("Run 'python3 detect_system.py' first to generate system config.")
-        print("Using default CPU configuration...")
-        return {
-            "recommended_config": {
-                "device": "cpu",
-                "dtype": "float32",
-                "compile": False,
-                "backend": "cpu",
-                "enable_tf32": False
-            }
-        }
-    
-    with open(config_path, 'r') as f:
-        config = json.load(f)
-    
-    print(f"✅ Loaded system config from {config_path}")
-    return config
-
-def load_latin_tokenizer(data_dir: str = "gpt_data_latin"):
-    """Load the custom Latin tokenizer and return encode/decode functions."""
-    meta_path = os.path.join(data_dir, "meta.pkl")
-    
-    if not os.path.exists(meta_path):
-        print(f"❌ Custom tokenizer not found at {meta_path}")
-        print("You must run 'python3 prepare_latin.py' first to create custom tokenizer")
-        print("Cannot continue without custom Latin tokenizer.")
-        exit(1)
-    
-    # Load tokenizer metadata
-    with open(meta_path, "rb") as f:
-        meta = pickle.load(f)
-    
-    tokenizer_config = meta["tokenizer_config"]
-    print(f"✅ Loading custom Latin tokenizer")
-    print(f"   Vocabulary size: {meta['vocab_size']}")
-    print(f"   Tokenizer type: {tokenizer_config['type']}")
-    
-    # Load the actual tokenizer
-    tokenizer = ByteLevelBPETokenizer(
-        tokenizer_config["vocab_file"],
-        tokenizer_config["merges_file"]
-    )
-    
-    # Return encode/decode functions
-    def encode(text):
-        return tokenizer.encode(text).ids
-    
-    def decode(ids):
-        return tokenizer.decode(ids)
-    
-    return encode, decode
 
 # Parse command line arguments
 def parse_args():
@@ -78,15 +21,24 @@ def parse_args():
     parser.add_argument('--max_new_tokens', type=int, default=200, help='Number of tokens per sample')
     parser.add_argument('--temperature', type=float, default=0.7, help='Sampling temperature')
     parser.add_argument('--top_k', type=int, default=50, help='Top-k sampling parameter')
-    parser.add_argument('--repetition_penalty', type=float, default=1.2, help='Repetition penalty (1.0 = off, 1.2 = default)')
+    parser.add_argument('--top_p', type=float, default=None, help='Nucleus sampling threshold (e.g. 0.9); off by default')
+    parser.add_argument('--min_p', type=float, default=None, help='Min-p sampling threshold (e.g. 0.05); off by default')
+    parser.add_argument('--repetition_penalty', type=float, default=1.0,
+                        help='Repetition penalty (1.0 = off, the default). Note: this penalizes '
+                             'Latin inflectional endings and function-word BPE pieces, so it can '
+                             'hurt grammaticality while cosmetically hiding repetition.')
+    parser.add_argument('--stop_at_eos', action='store_true', default=True,
+                        help='Stop generation at the end-of-document token (default: on)')
+    parser.add_argument('--no_stop_at_eos', dest='stop_at_eos', action='store_false')
     parser.add_argument('--seed', type=int, default=None, help='Random seed (if not set, uses current time)')
+    paths.add_path_args(parser, include_checkpoint=True)
     return parser.parse_args()
 
 args = parse_args()
 
 # -----------------------------------------------------------------------------
 # Latin-specific sampling configuration
-out_dir = 'out-latin'  # directory where Latin model checkpoints are saved
+out_dir = args.out_dir  # directory where Latin model checkpoints are saved
 start = args.start  # Latin prompt to start with
 num_samples = args.num_samples  # number of samples to generate
 max_new_tokens = args.max_new_tokens  # number of tokens to generate per sample
@@ -99,10 +51,13 @@ seed = args.seed if args.seed is not None else int(time.time())  # Use current t
 system_config = load_system_config()
 recommended = system_config["recommended_config"]
 
-device = recommended["device"]
-dtype = recommended["dtype"] 
+device = args.device or recommended["device"]
+dtype = recommended["dtype"]
 compile = recommended["compile"]
 enable_tf32 = recommended.get("enable_tf32", False)
+# CPU cannot run bfloat16/float16 autocast usefully here; keep it honest.
+if device == 'cpu':
+    dtype = 'float32'
 # -----------------------------------------------------------------------------
 
 torch.manual_seed(seed)
@@ -124,27 +79,14 @@ device_type = device if device in ('cuda', 'mps') else 'cpu'
 ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[dtype]
 ctx = nullcontext() if device_type == 'cpu' else torch.amp.autocast(device_type=device_type, dtype=ptdtype)
 
-# Load the trained Latin model
-ckpt_path = os.path.join(out_dir, 'ckpt.pt')
-if not os.path.exists(ckpt_path):
-    print(f"Error: No checkpoint found at {ckpt_path}")
-    print("Make sure you have trained the model first using train_latin.py")
+# Load the trained Latin model (defaults to ckpt_best.pt, not the rolling ckpt.pt)
+try:
+    ckpt_path = resolve_checkpoint(out_dir, args.checkpoint)
+except FileNotFoundError as e:
+    print(f"Error: {e}")
     exit(1)
 
-print(f"Loading model from {ckpt_path}")
-checkpoint = torch.load(ckpt_path, map_location=device, weights_only=False)
-gptconf = GPTConfig(**checkpoint['model_args'])
-model = GPT(gptconf)
-state_dict = checkpoint['model']
-
-# Handle potential module prefix from compiled models
-unwanted_prefix = '_orig_mod.'
-for k, v in list(state_dict.items()):
-    if k.startswith(unwanted_prefix):
-        state_dict[k[len(unwanted_prefix):]] = state_dict.pop(k)
-
-model.load_state_dict(state_dict)
-print(f"Model loaded successfully. Best validation loss: {checkpoint.get('best_val_loss', 'unknown'):.4f}")
+model, checkpoint = load_model(ckpt_path, device, GPT, GPTConfig)
 
 model.eval()
 model.to(device)
@@ -165,7 +107,9 @@ if compile:
         model = torch.compile(model)
 
 # Set up tokenization (using custom Latin tokenizer)
-encode, decode = load_latin_tokenizer()
+encode, decode, meta = load_latin_tokenizer(args.data_dir)
+specials = special_token_ids(meta)
+eos_id = specials["eos"]
 
 # Handle different start prompt formats
 if start.startswith('FILE:'):
@@ -183,14 +127,21 @@ else:
 # Encode the starting prompt
 start_ids = encode(start)
 if len(start_ids) == 0:
-    # For empty prompts, start with a minimal tensor that won't cause MPS errors
-    # Use a single token - for custom tokenizer, use the first token (usually space or similar)
-    start_ids = [1]  # Use token ID 1 as fallback for empty prompts
+    # Empty prompt: seed with the end-of-document token. Documents are separated by EOS,
+    # so EOS is exactly the context that predicts "start of a fresh document". The old
+    # code seeded with token id 1 (<|pad|>), which never appears in training data at all.
+    start_ids = [eos_id]
+    if not meta.get("eos_separated", False):
+        print("⚠️  This corpus was built without EOS separators, so the model has never "
+              "seen the document-start token. Empty-prompt samples will be unreliable.")
 x = torch.tensor(start_ids, dtype=torch.long, device=device)[None, ...]
 
-# Generate samples
+# Provenance: makes any pasted sample traceable back to an exact model + decode config.
+ckpt_hash = paths.file_sha1(ckpt_path, max_bytes=1 << 20)
 print(f"\nGenerating {num_samples} samples with {max_new_tokens} tokens each:")
-print(f"Temperature: {temperature}, Top-k: {top_k}, Repetition penalty: {repetition_penalty}")
+print(f"Temperature: {temperature}, Top-k: {top_k}, Top-p: {args.top_p}, Min-p: {args.min_p}")
+print(f"Repetition penalty: {repetition_penalty}, Stop at EOS: {args.stop_at_eos}")
+print(f"Checkpoint: {ckpt_path.name} (sha1[:12]={ckpt_hash[:12]}), seed: {seed}")
 print("=" * 80)
 
 with torch.no_grad():
@@ -204,7 +155,9 @@ with torch.no_grad():
             
             print(f"\n--- Sample {k+1} ---")
             y = model.generate(x, max_new_tokens, temperature=temperature, top_k=top_k,
-                               repetition_penalty=repetition_penalty)
+                               top_p=args.top_p, min_p=args.min_p,
+                               repetition_penalty=repetition_penalty,
+                               eos_token_id=eos_id if args.stop_at_eos else None)
             generated_text = decode(y[0].tolist())
             print(generated_text)
             print('-' * 40)

@@ -12,6 +12,19 @@ out-latin/
 latin_corpus_merged.txt
 latin_training_config.json
 
-# Root-level build artifacts (if prepare_latin.py is run from repo root instead of src/)
+# Rebuilt datasets (regenerate with: python3 src/prepare_corpus.py)
+src/gpt_data_latin_v2/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# Root-level build artifacts are no longer produced: paths.py anchors every artifact
+# under src/ regardless of the directory a script is invoked from. Kept as a guard.
 /gpt_data_latin/
 /tokenizer_latin/
+/out-latin/

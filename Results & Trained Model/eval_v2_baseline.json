@@ -1,0 +1,41 @@
+[
+  {
+    "final_ce": 3.7151871585845946,
+    "final_ce_ci95": [
+      3.635190369606018,
+      3.7930317709445953
+    ],
+    "final_ppl": 41.06627227058876,
+    "objective_ce": 3.7295646190643312,
+    "n_batches": 25,
+    "n_tokens_scored": 102400,
+    "per_readout_ce": [
+      3.7652868461608886,
+      3.7082197952270506,
+      3.7151871585845946
+    ],
+    "bits_per_byte": 1.1859773578787414,
+    "bytes_per_token": 4.51937977909724,
+    "contamination": {
+      "longest_exact_train_ngram_tokens": [
+        16,
+        14,
+        32,
+        7,
+        7
+      ],
+      "max": 32,
+      "median": 14.0
+    },
+    "label": "gpt_data_latin_v2",
+    "data_dir": "gpt_data_latin_v2",
+    "split": "val",
+    "checkpoint": "/Users/willow/Documents/Programming/Latin-LLM-main/src/out-latin/ckpt_best.pt",
+    "checkpoint_sha1": "53560d9c9e3822466171e6a8b8ac257b4300c031",
+    "iter_num": 98500,
+    "reported_best_val_loss": 3.8959529399871826,
+    "block_size": 512,
+    "n_loops": 3,
+    "loop_loss_weighting": "uniform"
+  }
+]

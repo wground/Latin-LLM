@@ -7,11 +7,16 @@ Architecture: RoPE, SwiGLU, GQA, RMSNorm, QK-norm (nanoChat-inspired), optional
               looped/recurrent depth (Ouro, arXiv:2510.25741)
 Optimizer: Muon (with weight decay) + AdamW hybrid (CUDA) or AdamW (MPS/CPU)
 LR Schedule: Warmup-Stable-Decay (WSD)
-Checkpoints: ckpt.pt (latest, resumable) + ckpt_best.pt (best val loss)
+Checkpoints: ckpt.pt (latest, resumable) + ckpt_best.pt (best val loss) + ckpt_final.pt
 
 Usage:
-    python3 train_latin.py [--config CONFIG_FILE] [--batch_size SIZE] [--max_iters ITERS]
+    python3 train_latin.py --init scratch [--batch_size SIZE] [--max_iters ITERS]
+    python3 train_latin.py --init resume  [--out-dir DIR]
     python3 train_latin.py [--n_loops N] [--n_layer L] [--n_embd D] [--dropout P]
+
+Note: --init is REQUIRED to be explicit. Earlier versions inferred "resume" from the mere
+presence of out-dir/ckpt.pt, so any run -- including a smoke test -- would silently resume
+the real training run and overwrite its checkpoint.
 
 Author: Willow Groundwater-Schuldt & Claude
 """
@@ -22,14 +27,18 @@ import math
 import json
 import pickle
 import argparse
+import shutil
+import subprocess
 from contextlib import nullcontext
-from typing import Dict, Any, Tuple
+from pathlib import Path
+from typing import Dict, Any, Optional, Tuple
 
 import numpy as np
 import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed import init_process_group, destroy_process_group
 
+import paths
 from model import GPTConfig, GPT
 
 
@@ -104,8 +113,9 @@ class Muon(torch.optim.Optimizer):
 
 # --- Configuration Loading ---
 
-def load_system_config(config_path: str = "latin_training_config.json") -> Dict[str, Any]:
+def load_system_config(config_path=None) -> Dict[str, Any]:
     """Load system configuration from detect_system.py output."""
+    config_path = Path(config_path) if config_path is not None else paths.SYSTEM_CONFIG
     if not os.path.exists(config_path):
         print(f"Config file {config_path} not found!")
         print("Run 'python3 detect_system.py' first to generate system config.")
@@ -131,13 +141,14 @@ def load_system_config(config_path: str = "latin_training_config.json") -> Dict[
     return config
 
 
-def load_tokenizer_config(data_dir: str = "gpt_data_latin") -> Dict[str, Any]:
+def load_tokenizer_config(data_dir=None) -> Dict[str, Any]:
     """Load custom tokenizer configuration and metadata."""
-    meta_path = os.path.join(data_dir, "meta.pkl")
+    data_dir = Path(data_dir) if data_dir is not None else paths.DATA_DIR
+    meta_path = data_dir / paths.META_NAME
 
-    if not os.path.exists(meta_path):
+    if not meta_path.exists():
         print(f"Tokenizer metadata not found at {meta_path}")
-        print("You must run 'python3 prepare_latin.py' first to create custom tokenizer")
+        print("You must run 'python3 prepare_corpus.py' first to build the dataset")
         exit(1)
 
     with open(meta_path, "rb") as f:
@@ -149,11 +160,15 @@ def load_tokenizer_config(data_dir: str = "gpt_data_latin") -> Dict[str, Any]:
     if "data_stats" in meta:
         print(f"   Training tokens: {meta['data_stats']['train_tokens']:,}")
         print(f"   Validation tokens: {meta['data_stats']['val_tokens']:,}")
+    if not meta.get("eos_separated", False):
+        print("   ⚠️  This dataset has NO document separators (<|endoftext|>). The model "
+              "cannot learn where documents end. Rebuild with prepare_corpus.py.")
 
     return {
         "vocab_size": meta["vocab_size"],
         "tokenizer_type": meta["tokenizer_config"]["type"],
-        "data_stats": meta.get("data_stats", {})
+        "data_stats": meta.get("data_stats", {}),
+        "meta": meta,
     }
 
 
@@ -161,7 +176,7 @@ def setup_training_config(system_config: Dict[str, Any], args: argparse.Namespac
     """Setup training configuration based on system capabilities and user args."""
     rec_config = system_config["recommended_config"]
 
-    tokenizer_config = load_tokenizer_config()
+    tokenizer_config = load_tokenizer_config(args.data_dir)
     vocab_size = tokenizer_config["vocab_size"]
     data_stats = tokenizer_config.get("data_stats", {})
     train_tokens = data_stats.get("train_tokens", 0)
@@ -202,15 +217,21 @@ def setup_training_config(system_config: Dict[str, Any], args: argparse.Namespac
 
     config = {
         # I/O Configuration
-        "out_dir": "out-latin",
+        "out_dir": str(args.out_dir),
+        "data_dir": str(args.data_dir),
         "eval_interval": eval_interval,
         "log_interval": 10,
         "eval_iters": 150,
+        "eval_seed": 1337,   # fixed: evaluation windows must not move between runs
+        # "weighted" applies the corpus tier multipliers via sampling (see _get_doc_sampler);
+        # "uniform" ignores them, which is the control condition for a mixture ablation.
+        "sampling": "weighted",
         "eval_only": False,
         "always_save_checkpoint": True,
 
         # Dataset Configuration
         "dataset": "latin",
+        "data_stats": data_stats,
         "gradient_accumulation_steps": gradient_accumulation_steps,
 
         # Model Configuration (modernized architecture)
@@ -229,7 +250,9 @@ def setup_training_config(system_config: Dict[str, Any], args: argparse.Namespac
         "n_loops": 1,                 # 1 = standard transformer (no recurrence)
         "loop_input_injection": True, # re-inject token embedding at each loop iteration
         "per_step_loss": True,        # deep supervision: LM loss after every loop step
-        "loop_loss_weighting": "uniform",  # "uniform" or "linear" (up-weight later steps)
+        # Inference only ever uses the final readout, so weight later steps higher rather
+        # than averaging all readouts equally (arXiv:2606.24898).
+        "loop_loss_weighting": "linear",  # "uniform" | "linear" | "final_only"
 
         # Optimizer Configuration
         "learning_rate": 3e-4 if vocab_size > 12000 else 4e-4,
@@ -279,8 +302,10 @@ def setup_training_config(system_config: Dict[str, Any], args: argparse.Namespac
 
     config["vocab_size"] = vocab_size
 
-    # Check if we should resume from checkpoint
-    config["init_from"] = 'resume' if os.path.exists(os.path.join(config["out_dir"], 'ckpt.pt')) else 'scratch'
+    # Initialization mode is EXPLICIT. It used to be inferred from the mere existence of
+    # out-dir/ckpt.pt, which meant any invocation -- including a smoke test -- silently
+    # resumed the real run and then overwrote its checkpoint.
+    config["init_from"] = args.init
 
     return config
 
@@ -291,33 +316,27 @@ def setup_training_config(system_config: Dict[str, Any], args: argparse.Namespac
 # every micro-step, which is a measurable stall in the training loop; the memmap header
 # only needs to be parsed once and the OS page cache handles the actual reads.
 _DATA_CACHE: Dict[str, np.memmap] = {}
+# Fixed evaluation windows, built once per (split, block_size, batch_size, eval_iters).
+_EVAL_WINDOWS: Dict[str, np.ndarray] = {}
 
 
-def _get_split_data(split: str) -> np.memmap:
+def _get_split_data(split: str, config: Dict[str, Any]) -> np.memmap:
+    """Memmap for a split, resolved from the configured data dir (never from cwd)."""
     if split not in _DATA_CACHE:
-        filename = os.path.join("gpt_data_latin", f"{split}.bin")
-        if not os.path.exists(filename):
-            raise FileNotFoundError(f"Data file {filename} not found. Run prepare_latin.py first.")
+        data_dir = Path(config.get("data_dir") or paths.DATA_DIR)
+        filename = data_dir / f"{split}.bin"
+        if not filename.exists():
+            raise FileNotFoundError(
+                f"Data file {filename} not found. Run prepare_corpus.py first."
+            )
         _DATA_CACHE[split] = np.memmap(filename, dtype=np.uint16, mode='r')
     return _DATA_CACHE[split]
 
 
-def get_batch(split: str, config: Dict[str, Any]) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Load a batch of contiguous windows from the corpus.
-
-    The memmap is cached across calls and the batch is built with a single vectorized
-    gather (no Python per-sample loop). The next-batch copy is issued non-blocking on
-    CUDA; because the training loop fetches the next batch before calling backward(),
-    that copy overlaps compute.
-    """
-    data = _get_split_data(split)
-    block_size = config["block_size"]
-    batch_size = config["batch_size"]
-
-    # torch RNG (seeded via manual_seed) for reproducible window starts.
-    ix = torch.randint(len(data) - block_size, (batch_size,)).numpy()
-    # Vectorized gather: (batch_size, block_size + 1), then split into inputs/targets.
-    idx = ix[:, None] + np.arange(block_size + 1, dtype=np.int64)[None, :]
+def _windows_to_batch(data: np.memmap, starts: np.ndarray, block_size: int,
+                      config: Dict[str, Any]) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Gather (x, y) for the given window start offsets."""
+    idx = starts[:, None] + np.arange(block_size + 1, dtype=np.int64)[None, :]
     seq = torch.from_numpy(data[idx].astype(np.int64))
     # .contiguous(): the slices below are non-contiguous views; the model's loss does
     # targets.view(-1), and pin_memory()/non_blocking H2D both want contiguous tensors.
@@ -334,30 +353,164 @@ def get_batch(split: str, config: Dict[str, Any]) -> Tuple[torch.Tensor, torch.T
     return x, y
 
 
+_SAMPLER_CACHE: Dict[str, Any] = {}
+
+
+def _get_doc_sampler(config: Dict[str, Any]) -> Optional[Dict[str, np.ndarray]]:
+    """Load the per-document index and weights written by prepare_corpus.py.
+
+    Corpus weighting used to be physical: a tier-15 document was written into train.bin
+    fifteen times. Now train.bin holds each document once and the mixture is applied here,
+    by sampling window starts from documents in proportion to their weight. Same effective
+    exposure, but the mixture is a run-time choice rather than a property of a 1.3 GB file.
+    """
+    if 'doc' in _SAMPLER_CACHE:
+        return _SAMPLER_CACHE['doc']
+
+    data_dir = Path(config.get("data_dir") or paths.DATA_DIR)
+    index_f, weights_f = data_dir / "train_index.npy", data_dir / "train_weights.npy"
+    if not (index_f.exists() and weights_f.exists()):
+        _SAMPLER_CACHE['doc'] = None
+        return None
+
+    index = np.load(index_f)          # (n_docs, 2): [start_offset, length]
+    weights = np.load(weights_f).astype(np.float64)
+    if config.get("sampling", "weighted") == "uniform":
+        weights = np.ones_like(weights)
+    # Weight by tier * length: a window start is uniform within a document, so without the
+    # length factor a one-page hymn would be sampled as often as a 900-page series.
+    mass = weights * index[:, 1]
+    total = mass.sum()
+    _SAMPLER_CACHE['doc'] = {
+        'starts': index[:, 0],
+        'lengths': index[:, 1],
+        'cdf': np.cumsum(mass / total),
+    }
+    return _SAMPLER_CACHE['doc']
+
+
+def get_batch(split: str, config: Dict[str, Any]) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Load a batch of contiguous windows from the corpus.
+
+    The memmap is cached across calls and the batch is built with a single vectorized
+    gather (no Python per-sample loop). The next-batch copy is issued non-blocking on
+    CUDA; because the training loop fetches the next batch before calling backward(),
+    that copy overlaps compute.
+    """
+    data = _get_split_data(split, config)
+    block_size = config["block_size"]
+    batch_size = config["batch_size"]
+    high = len(data) - block_size - 1
+
+    sampler = _get_doc_sampler(config) if split == 'train' else None
+    if sampler is not None:
+        # torch RNG keeps the data stream reproducible and resumable.
+        u = torch.rand(batch_size).numpy()
+        doc = np.searchsorted(sampler['cdf'], u)
+        doc = np.clip(doc, 0, len(sampler['starts']) - 1)
+        # Uniform start within the chosen document; windows may run past its EOS into the
+        # next document, which is exactly how the model learns document transitions.
+        within = (torch.rand(batch_size).numpy() * sampler['lengths'][doc]).astype(np.int64)
+        starts = np.clip(sampler['starts'][doc] + within, 0, high)
+    else:
+        starts = torch.randint(high, (batch_size,)).numpy()
+
+    return _windows_to_batch(data, starts, block_size, config)
+
+
+def get_eval_windows(split: str, config: Dict[str, Any]) -> np.ndarray:
+    """Immutable evaluation window offsets for a split.
+
+    Drawn once from a dedicated ``np.random.Generator`` seeded with ``eval_seed``. This
+    matters twice over: evaluation now scores the SAME text every time (so a "best"
+    checkpoint is chosen on a real improvement rather than on which windows it happened to
+    draw), and it no longer consumes the global torch RNG, so evaluating does not shift the
+    subsequent training batches.
+    """
+    key = f"{split}:{config['block_size']}:{config['batch_size']}:{config['eval_iters']}:{config['eval_seed']}"
+    if key not in _EVAL_WINDOWS:
+        data = _get_split_data(split, config)
+        n_windows = config["eval_iters"] * config["batch_size"]
+        high = len(data) - config["block_size"]
+        if high <= 0:
+            raise ValueError(f"Split '{split}' is shorter than block_size {config['block_size']}")
+        rng = np.random.default_rng(config["eval_seed"] + (0 if split == "train" else 1))
+        _EVAL_WINDOWS[key] = rng.integers(0, high, size=n_windows, dtype=np.int64)
+    return _EVAL_WINDOWS[key]
+
+
+def build_provenance(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Hashes identifying the data, tokenizer and code behind a run.
+
+    The .bin files are multi-GB, so they are fingerprinted by size plus a hash of their
+    first 64 MB -- enough to detect "this is a different dataset" without a full read.
+    """
+    data_dir = Path(config.get("data_dir") or paths.DATA_DIR)
+    prov: Dict[str, Any] = {}
+
+    for name, key in ((paths.TRAIN_BIN, 'train_bin'), (paths.VAL_BIN, 'val_bin')):
+        f = data_dir / name
+        if f.exists():
+            prov[f'{key}_sha1'] = paths.file_sha1(f, max_bytes=64 << 20)
+            prov[f'{key}_bytes'] = f.stat().st_size
+
+    try:
+        meta_path = data_dir / paths.META_NAME
+        with open(meta_path, 'rb') as fh:
+            meta = pickle.load(fh)
+        vocab_file, merges_file = paths.tokenizer_files(meta, meta_path)
+        prov['tokenizer_sha1'] = paths.dir_sha1([vocab_file, merges_file])
+    except Exception:
+        pass
+
+    try:
+        prov['git_rev'] = subprocess.check_output(
+            ['git', 'rev-parse', 'HEAD'], cwd=str(paths.SRC_DIR),
+            stderr=subprocess.DEVNULL, text=True).strip()
+        prov['git_dirty'] = bool(subprocess.check_output(
+            ['git', 'status', '--porcelain'], cwd=str(paths.SRC_DIR),
+            stderr=subprocess.DEVNULL, text=True).strip())
+    except Exception:
+        pass
+
+    return prov
+
+
 @torch.no_grad()
 def estimate_loss(model, config: Dict[str, Any], ctx) -> Dict[str, float]:
-    """Estimate model loss on train and validation sets."""
+    """Estimate loss on fixed train/val windows.
+
+    Returns both the training objective (``<split>``) and the final-readout cross-entropy
+    (``<split>_final``). For a looped model these differ: the objective averages the loop
+    readouts, but only the final readout is used at inference, so ``*_final`` is the number
+    that is comparable to a conventional model's loss. Also reports bits/byte, which stays
+    comparable across tokenizer changes.
+    """
     out = {}
     model.eval()
 
+    bytes_per_token = config.get("bytes_per_token")
+
     for split in ['train', 'val']:
+        data = _get_split_data(split, config)
+        windows = get_eval_windows(split, config)
+        batch_size = config["batch_size"]
         losses = torch.zeros(config["eval_iters"])
+        final_losses = torch.zeros(config["eval_iters"])
+
         for k in range(config["eval_iters"]):
-            try:
-                X, Y = get_batch(split, config)
-                with ctx:
-                    _, loss = model(X, Y)
-                losses[k] = loss.item()
-            except FileNotFoundError:
-                if split == 'val':
-                    X, Y = get_batch('train', config)
-                    with ctx:
-                        _, loss = model(X, Y)
-                    losses[k] = loss.item()
-                else:
-                    raise
+            starts = windows[k * batch_size:(k + 1) * batch_size]
+            X, Y = _windows_to_batch(data, starts, config["block_size"], config)
+            with ctx:
+                _, loss, aux = model(X, Y)
+            losses[k] = loss.item()
+            final_losses[k] = aux.get("final_loss", loss).item()
 
         out[split] = losses.mean()
+        out[f"{split}_final"] = final_losses.mean()
+        if bytes_per_token:
+            # bits/byte = CE_nats / ln(2) / bytes_per_token
+            out[f"{split}_bpb"] = float(final_losses.mean()) / math.log(2) / bytes_per_token
 
     model.train()
     return out
@@ -636,8 +789,19 @@ def plot_training_metrics(metrics: Dict, out_dir: str):
 
 def main():
     parser = argparse.ArgumentParser(description="Train LatinLLM model")
-    parser.add_argument("--config", default="latin_training_config.json", help="System config file")
+    parser.add_argument("--config", default=None, help="System config file")
+    parser.add_argument("--init", choices=["scratch", "resume", "finetune"], required=True,
+                        help="scratch: new model. resume: continue a run (iteration count, "
+                             "LR schedule, RNG and optimizer state all restored). finetune: "
+                             "load the weights but restart the schedule, accepting the "
+                             "checkpoint's architecture.")
     parser.add_argument("--batch_size", type=int, help="Override batch size")
+    parser.add_argument("--block_size", type=int, help="Override context length")
+    parser.add_argument("--eval_iters", type=int, help="Override number of eval batches")
+    parser.add_argument("--eval_interval", type=int, help="Override iterations between evals")
+    parser.add_argument("--sampling", choices=["weighted", "uniform"],
+                        help="weighted: apply corpus tier multipliers via sampling. "
+                             "uniform: ignore them (control condition).")
     parser.add_argument("--max_iters", type=int, default=75000, help="Maximum training iterations")
     parser.add_argument("--wandb", action="store_true", help="Enable Weights & Biases logging")
     parser.add_argument("--no_compile", action="store_true",
@@ -645,11 +809,15 @@ def main():
     # Looped / recurrent-depth experiment overrides (Ouro, arXiv:2510.25741)
     parser.add_argument("--n_loops", type=int, help="Recurrence count; effective depth = n_layer * n_loops")
     parser.add_argument("--no_per_step_loss", action="store_true", help="Disable deep supervision across loop steps")
-    parser.add_argument("--loop_loss_weighting", choices=["uniform", "linear"], help="How to weight per-step losses")
+    parser.add_argument("--loop_loss_weighting", choices=["uniform", "linear", "final_only"],
+                        help="How to weight per-step losses")
     # Model-size overrides (Tier 3): size by hand instead of the vocab-derived defaults
     parser.add_argument("--n_layer", type=int, help="Override number of unique transformer layers")
     parser.add_argument("--n_embd", type=int, help="Override embedding dimension")
+    parser.add_argument("--n_head", type=int, help="Override number of attention heads")
+    parser.add_argument("--n_kv_head", type=int, help="Override number of KV heads (GQA)")
     parser.add_argument("--dropout", type=float, help="Override dropout")
+    paths.add_path_args(parser)
     args = parser.parse_args()
 
     print("LatinLLM Training Script")
@@ -660,12 +828,26 @@ def main():
     config = setup_training_config(system_config, args)
 
     # Apply explicit CLI overrides (take precedence over auto-derived defaults).
-    for key in ("n_loops", "n_layer", "n_embd", "dropout", "loop_loss_weighting"):
-        val = getattr(args, key)
+    for key in ("n_loops", "n_layer", "n_embd", "n_head", "n_kv_head", "dropout",
+                "loop_loss_weighting", "block_size", "eval_iters", "eval_interval",
+                "sampling"):
+        val = getattr(args, key, None)
         if val is not None:
             config[key] = val
     if args.no_per_step_loss:
         config["per_step_loss"] = False
+    if args.device:
+        config["device"] = args.device
+        if args.device == 'cpu':
+            config["dtype"] = 'float32'
+            config["compile"] = False
+
+    # bytes/token lets us report bits/byte, which stays comparable if the tokenizer changes.
+    stats = config.get("data_stats", {})
+    if stats.get("train_bytes") and stats.get("train_tokens"):
+        config["bytes_per_token"] = stats["train_bytes"] / stats["train_tokens"]
+
+    Path(config["out_dir"]).mkdir(parents=True, exist_ok=True)
 
     if args.wandb:
         config["wandb_log"] = True
@@ -759,22 +941,80 @@ def main():
     best_val_loss = 1e9
     patience_counter = 0
 
+    metrics = {
+        'train_losses': [],
+        'val_losses': [],
+        'learning_rates': [],
+        'mfu_values': [],
+        'iter_times': [],
+    }
+
+    # Provenance stamped into every checkpoint, so a saved model can always be traced back
+    # to the exact data, tokenizer and code revision that produced it.
+    provenance = build_provenance(config)
+
+    checkpoint = None
     if config["init_from"] == 'scratch':
         print("Initializing new model ex nihilo")
         gptconf = GPTConfig(**model_args)
         model = GPT(gptconf)
-    elif config["init_from"] == 'resume':
-        print(f"Resuming training from {config['out_dir']}")
-        ckpt_path = os.path.join(config["out_dir"], 'ckpt.pt')
+    elif config["init_from"] in ('resume', 'finetune'):
+        ckpt_path = Path(config["out_dir"]) / paths.CKPT_LATEST
+        if not ckpt_path.exists():
+            print(f"Error: --init {config['init_from']} requested but no checkpoint at {ckpt_path}")
+            return 1
+        print(f"{config['init_from'].capitalize()} from {ckpt_path}")
         checkpoint = torch.load(ckpt_path, map_location=device, weights_only=False)
         checkpoint_model_args = checkpoint['model_args']
 
-        # Use checkpoint model args (handles architecture compatibility)
-        for k in ['n_layer', 'n_head', 'n_kv_head', 'n_embd', 'intermediate_size',
-                   'block_size', 'vocab_size', 'dropout', 'softcap', 'rope_theta',
-                   'n_loops', 'loop_input_injection', 'per_step_loss', 'loop_loss_weighting']:
-            if k in checkpoint_model_args:
-                model_args[k] = checkpoint_model_args[k]
+        # Architecture comes from the checkpoint -- but the run config must AGREE with it,
+        # not silently diverge. block_size is the dangerous one: the checkpoint restores the
+        # model at its own context length while get_batch keeps building windows at the
+        # configured length, so a mismatch used to blow up inside forward() mid-run.
+        arch_keys = ['n_layer', 'n_head', 'n_kv_head', 'n_embd', 'intermediate_size',
+                     'block_size', 'vocab_size', 'softcap', 'rope_theta',
+                     'n_loops', 'loop_input_injection']
+        conflicts = []
+        for k in arch_keys:
+            if k not in checkpoint_model_args:
+                continue
+            ckpt_val = checkpoint_model_args[k]
+            if k in model_args and model_args[k] != ckpt_val:
+                conflicts.append((k, model_args[k], ckpt_val))
+            model_args[k] = ckpt_val
+
+        if conflicts:
+            print("\n  Checkpoint/config mismatch:")
+            for k, requested, actual in conflicts:
+                print(f"     {k}: config requests {requested}, checkpoint has {actual}")
+            if config["init_from"] == 'resume':
+                print("\n  Resuming would train a checkpoint-shaped model on config-shaped data.")
+                print("  Fix the config to match, or use --init finetune to accept the "
+                      "checkpoint's architecture deliberately.")
+                return 1
+            print("  --init finetune: adopting the checkpoint's architecture.\n")
+
+        # The run must use the checkpoint's context length for data too.
+        config["block_size"] = model_args["block_size"]
+
+        # Optimizer family is a property of the hardware, but silently switching families
+        # on resume throws away all optimizer state. Say so.
+        ckpt_used_muon = checkpoint.get('use_muon', False)
+        if ckpt_used_muon != use_muon:
+            print(f"  Optimizer family changes on resume: checkpoint used "
+                  f"{'Muon+AdamW' if ckpt_used_muon else 'AdamW'}, this device uses "
+                  f"{'Muon+AdamW' if use_muon else 'AdamW'}. Optimizer state will NOT be "
+                  f"restored; expect a transient loss bump.")
+
+        # Data/tokenizer provenance: training on different data than the checkpoint saw is
+        # legitimate for finetuning but almost never intended on resume.
+        ckpt_prov = checkpoint.get('provenance', {})
+        if ckpt_prov and config["init_from"] == 'resume':
+            for key, label in (('train_bin_sha1', 'train.bin'), ('tokenizer_sha1', 'tokenizer')):
+                old, new = ckpt_prov.get(key), provenance.get(key)
+                if old and new and old != new:
+                    print(f"  {label} changed since this checkpoint was written "
+                          f"({old[:12]} -> {new[:12]}).")
 
         gptconf = GPTConfig(**model_args)
         model = GPT(gptconf)
@@ -786,8 +1026,24 @@ def main():
                 state_dict[k[len(unwanted_prefix):]] = state_dict.pop(k)
         model.load_state_dict(state_dict)
 
-        iter_num = checkpoint['iter_num']
-        best_val_loss = checkpoint['best_val_loss']
+        if config["init_from"] == 'resume':
+            iter_num = checkpoint['iter_num']
+            best_val_loss = float(checkpoint['best_val_loss'])
+            patience_counter = checkpoint.get('early_stopping', {}).get('patience_counter', 0)
+            # Restore the data stream so a resumed run does not replay the same windows.
+            rng = checkpoint.get('rng_state')
+            if rng:
+                torch.set_rng_state(rng['torch'].cpu() if hasattr(rng['torch'], 'cpu') else rng['torch'])
+                if rng.get('numpy') is not None:
+                    np.random.set_state(rng['numpy'])
+                if rng.get('cuda') is not None and torch.cuda.is_available():
+                    torch.cuda.set_rng_state_all(rng['cuda'])
+            if 'metrics' in checkpoint:
+                metrics = checkpoint['metrics']
+        else:
+            print("  --init finetune: restarting iteration count and LR schedule at 0.")
+    else:
+        raise ValueError(f"Unknown init mode {config['init_from']!r}")
 
     # Crop block size if necessary
     if config["block_size"] < model.config.block_size:
@@ -831,7 +1087,7 @@ def main():
         print(f"Muon params: {n_muon:,} | AdamW params: {n_adamw:,}")
         print(f"using fused AdamW: {use_fused}")
 
-        if config["init_from"] == 'resume' and 'muon_optimizer' in checkpoint:
+        if config["init_from"] == 'resume' and checkpoint and 'muon_optimizer' in checkpoint:
             muon_optimizer.load_state_dict(checkpoint['muon_optimizer'])
             adamw_optimizer.load_state_dict(checkpoint['adamw_optimizer'])
     else:
@@ -839,10 +1095,12 @@ def main():
             config["weight_decay"], config["learning_rate"],
             (config["beta1"], config["beta2"]), device_type
         )
-        if config["init_from"] == 'resume' and 'optimizer' in checkpoint:
+        if config["init_from"] == 'resume' and checkpoint and 'optimizer' in checkpoint:
             optimizer.load_state_dict(checkpoint['optimizer'])
 
-    if config["init_from"] == 'resume':
+    if checkpoint is not None:
+        if config["init_from"] == 'resume' and scaler is not None and 'scaler' in checkpoint:
+            scaler.load_state_dict(checkpoint['scaler'])
         checkpoint = None  # Free memory
 
     # Compile model
@@ -862,24 +1120,18 @@ def main():
             print("Weights & Biases not available, continuing without logging")
             config["wandb_log"] = False
 
-    # Metrics collection for visualization
-    metrics = {
-        'train_losses': [],
-        'val_losses': [],
-        'learning_rates': [],
-        'mfu_values': [],
-        'iter_times': [],
-    }
-
     # Training loop
     print(f"\nStarting training for Latin corpus...")
     print(f"Model parameters: {sum(p.numel() for p in model.parameters()) / 1e6:.1f}M")
 
     try:
         X, Y = get_batch('train', config)
+        # Fail fast if validation is missing. This used to fall back to scoring the TRAINING
+        # data and reporting it as "val loss", which silently invalidates the whole run.
+        _get_split_data('val', config)
     except FileNotFoundError as e:
         print(f"Error: {e}")
-        print("Please run prepare_latin.py first to prepare the training data.")
+        print("Please run prepare_corpus.py first to prepare the training data.")
         return 1
 
     t0 = time.time()
@@ -887,7 +1139,14 @@ def main():
     running_mfu = -1.0
 
     def save_checkpoint(filename):
-        """Write a full resumable checkpoint (model + optimizer state) to out_dir."""
+        """Write a full resumable checkpoint atomically.
+
+        Includes RNG state, scaler state, metrics and provenance hashes so a resumed run
+        continues the same data stream rather than re-randomizing, and so any checkpoint
+        can be traced back to the exact data + tokenizer + code that produced it.
+        Written to a temp file and renamed, so an interrupted save cannot leave a truncated
+        checkpoint where a valid one used to be.
+        """
         ckpt = {
             'model': raw_model.state_dict(),
             'model_args': model_args,
@@ -895,13 +1154,27 @@ def main():
             'best_val_loss': best_val_loss,
             'config': config,
             'use_muon': use_muon,
+            'metrics': metrics,
+            'provenance': provenance,
+            'rng_state': {
+                'torch': torch.get_rng_state(),
+                'numpy': np.random.get_state(),
+                'cuda': torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+            },
+            'early_stopping': {'patience_counter': patience_counter},
         }
+        if scaler is not None:
+            ckpt['scaler'] = scaler.state_dict()
         if use_muon:
             ckpt['muon_optimizer'] = muon_optimizer.state_dict()
             ckpt['adamw_optimizer'] = adamw_optimizer.state_dict()
         else:
             ckpt['optimizer'] = optimizer.state_dict()
-        torch.save(ckpt, os.path.join(config["out_dir"], filename))
+
+        dest = Path(config["out_dir"]) / filename
+        tmp = dest.with_suffix(dest.suffix + ".tmp")
+        torch.save(ckpt, tmp)
+        os.replace(tmp, dest)
 
     while True:
         # Set learning rate (WSD schedule)
@@ -921,22 +1194,36 @@ def main():
         # Evaluation and checkpointing
         if iter_num % config["eval_interval"] == 0 and master_process:
             losses = estimate_loss(raw_model, config, ctx)
-            val_loss = losses.get('val', losses['train'])
-            print(f"Step {iter_num}: train loss {losses['train']:.4f}, val loss {val_loss:.4f}")
+            # Select and report on the FINAL readout: it is the only one inference uses, so
+            # it is what makes the number comparable to a conventional model. The averaged
+            # loop objective is still logged, but never used to pick "best".
+            val_loss = float(losses['val_final'])
+            train_loss = float(losses['train_final'])
+            msg = (f"Step {iter_num}: train {train_loss:.4f}, val {val_loss:.4f} (final readout)")
+            if config["n_loops"] > 1:
+                msg += f" | loop-avg objective: train {float(losses['train']):.4f}, val {float(losses['val']):.4f}"
+            if 'val_bpb' in losses:
+                msg += f" | val {losses['val_bpb']:.4f} bits/byte"
+            print(msg)
 
             # Collect metrics
-            metrics['train_losses'].append((iter_num, losses['train'].item() if hasattr(losses['train'], 'item') else float(losses['train'])))
-            metrics['val_losses'].append((iter_num, val_loss.item() if hasattr(val_loss, 'item') else float(val_loss)))
+            metrics['train_losses'].append((iter_num, train_loss))
+            metrics['val_losses'].append((iter_num, val_loss))
 
             if config["wandb_log"]:
                 import wandb
-                wandb.log({
+                log = {
                     "iter": iter_num,
-                    "train/loss": losses['train'],
-                    "val/loss": val_loss,
+                    "train/loss_final": train_loss,
+                    "val/loss_final": val_loss,
+                    "train/loss_objective": float(losses['train']),
+                    "val/loss_objective": float(losses['val']),
                     "lr": lr,
                     "mfu": running_mfu * 100,
-                })
+                }
+                if 'val_bpb' in losses:
+                    log["val/bits_per_byte"] = losses['val_bpb']
+                wandb.log(log)
 
             # Single source of truth for "did val loss improve?"
             improved = val_loss < (best_val_loss - config["min_delta"])
@@ -982,7 +1269,7 @@ def main():
                 model.require_backward_grad_sync = (micro_step == config["gradient_accumulation_steps"] - 1)
 
             with ctx:
-                _, loss = model(X, Y)
+                _, loss, _ = model(X, Y)
                 loss = loss / config["gradient_accumulation_steps"]
                 accumulated_loss += loss.item()
 
@@ -1049,6 +1336,12 @@ def main():
             break
 
     print("\nTraining completed!")
+
+    # The loop exits between eval intervals, so the last iterations were never checkpointed.
+    # Write them out explicitly instead of discarding them.
+    if master_process:
+        save_checkpoint(paths.CKPT_FINAL)
+        print(f"Final weights (iter {iter_num}) saved to {config['out_dir']}/{paths.CKPT_FINAL}")
 
     # Generate training visualization
     if master_process:

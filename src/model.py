@@ -125,7 +125,15 @@ class CausalSelfAttention(nn.Module):
             self.register_buffer("mask", torch.tril(torch.ones(config.block_size, config.block_size))
                                         .view(1, 1, config.block_size, config.block_size))
 
-    def forward(self, x, freqs_cis):
+    def forward(self, x, freqs_cis, cache=None, slot=None):
+        """
+        freqs_cis must already be sliced to this call's absolute positions, so incremental
+        decoding (where T == 1 but the true position is far along) rotates correctly.
+
+        When `cache` is given, the *unexpanded* K/V for these positions are appended to
+        cache slot `slot` and the full history is returned. Caching before the GQA expansion
+        is what makes GQA actually save memory: only n_kv_head heads are stored.
+        """
         B, T, C = x.size()
 
         # Project Q, K, V
@@ -138,29 +146,44 @@ class CausalSelfAttention(nn.Module):
         k = self.k_norm(k)
 
         # Apply RoPE to Q and K
-        q, k = apply_rotary_emb(q, k, freqs_cis[:T])
+        q, k = apply_rotary_emb(q, k, freqs_cis)
+
+        if cache is not None:
+            k, v = cache.update(slot, k, v)
+
+        kv_len = k.size(1)
 
         # GQA: expand KV heads to match Q heads by repeating
         if self.n_rep > 1:
-            k = k.unsqueeze(3).expand(B, T, self.n_kv_head, self.n_rep, self.head_dim)
-            k = k.reshape(B, T, self.n_head, self.head_dim)
-            v = v.unsqueeze(3).expand(B, T, self.n_kv_head, self.n_rep, self.head_dim)
-            v = v.reshape(B, T, self.n_head, self.head_dim)
+            k = k.unsqueeze(3).expand(B, kv_len, self.n_kv_head, self.n_rep, self.head_dim)
+            k = k.reshape(B, kv_len, self.n_head, self.head_dim)
+            v = v.unsqueeze(3).expand(B, kv_len, self.n_kv_head, self.n_rep, self.head_dim)
+            v = v.reshape(B, kv_len, self.n_head, self.head_dim)
 
         # Transpose for attention: (B, n_head, T, head_dim)
         q = q.transpose(1, 2)
         k = k.transpose(1, 2)
         v = v.transpose(1, 2)
 
+        # A single query attending to the whole cached history needs no mask; a full
+        # prefill does. (Partial prefill against a non-empty cache is not used here.)
+        is_causal = T > 1
+        if T > 1 and kv_len != T:
+            raise NotImplementedError(
+                "Multi-token forward against a non-empty KV cache is not supported; "
+                "reset the cache and re-prefill instead."
+            )
+
         if self.flash:
             y = F.scaled_dot_product_attention(
                 q, k, v, attn_mask=None,
                 dropout_p=self.dropout if self.training else 0,
-                is_causal=True
+                is_causal=is_causal
             )
         else:
             att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
-            att = att.masked_fill(self.mask[:, :, :T, :T] == 0, float('-inf'))
+            if is_causal:
+                att = att.masked_fill(self.mask[:, :, :T, :T] == 0, float('-inf'))
             att = F.softmax(att, dim=-1)
             y = att @ v
 
@@ -201,10 +224,42 @@ class Block(nn.Module):
         self.ln_2 = RMSNorm(config.n_embd)
         self.mlp = SwiGLUMLP(config)
 
-    def forward(self, x, freqs_cis):
-        x = x + self.attn(self.ln_1(x), freqs_cis)
+    def forward(self, x, freqs_cis, cache=None, slot=None):
+        x = x + self.attn(self.ln_1(x), freqs_cis, cache=cache, slot=slot)
         x = x + self.mlp(self.ln_2(x))
         return x
+
+
+# --- KV cache ---
+
+class KVCache:
+    """Per-(loop step, layer) key/value cache for incremental decoding.
+
+    A looped model applies the same n_layer blocks n_loops times, and each application sees
+    a different residual stream, so each needs its own cache slot: n_layer * n_loops total.
+    K/V are stored unexpanded (n_kv_head heads) as (B, T, n_kv_head, head_dim).
+    """
+
+    def __init__(self, n_slots: int):
+        self.n_slots = n_slots
+        self.k = [None] * n_slots
+        self.v = [None] * n_slots
+
+    def __len__(self):
+        """Number of positions currently cached."""
+        return 0 if self.k[0] is None else self.k[0].size(1)
+
+    def update(self, slot, k, v):
+        if self.k[slot] is None:
+            self.k[slot], self.v[slot] = k, v
+        else:
+            self.k[slot] = torch.cat([self.k[slot], k], dim=1)
+            self.v[slot] = torch.cat([self.v[slot], v], dim=1)
+        return self.k[slot], self.v[slot]
+
+    def reset(self):
+        self.k = [None] * self.n_slots
+        self.v = [None] * self.n_slots
 
 
 # --- Configuration ---
@@ -229,7 +284,10 @@ class GPTConfig:
     n_loops: int = 1                 # 1 = standard transformer (no recurrence)
     loop_input_injection: bool = True  # re-add the token embedding at each loop iteration
     per_step_loss: bool = True       # deep supervision: LM loss after every loop step
-    loop_loss_weighting: str = "uniform"  # "uniform" | "linear" (up-weight later steps)
+    # "linear" up-weights later steps, which matches the fact that inference only ever uses
+    # the final readout (arXiv:2606.24898). "uniform" is the old behaviour; "final_only"
+    # disables deep supervision's contribution to the objective entirely.
+    loop_loss_weighting: str = "linear"  # "uniform" | "linear" | "final_only"
 
     def __post_init__(self):
         # Default KV heads to full MHA if not specified
@@ -312,14 +370,35 @@ class GPT(nn.Module):
             logits = self.config.softcap * torch.tanh(logits / self.config.softcap)
         return logits, None
 
-    def forward(self, idx, targets=None):
+    def new_kv_cache(self):
+        """Allocate a cache sized for this model's effective depth."""
+        return KVCache(self.config.n_layer * self.config.n_loops)
+
+    def forward(self, idx, targets=None, cache=None, pos_offset=0):
+        """
+        Returns ``(logits, loss, aux)``.
+
+        ``loss`` is the training objective (the loop-weighted average when deep supervision
+        is on). ``aux['final_loss']`` is the cross-entropy of the FINAL readout alone --
+        the only readout inference actually uses. Reporting and checkpoint selection must
+        use ``final_loss``; optimizing uses ``loss``. Keeping the averaged objective and the
+        final-readout metric distinct is what makes the reported number comparable to a
+        conventional (non-looped) model's perplexity.
+        """
         b, t = idx.size()
-        assert t <= self.config.block_size, f"Cannot forward sequence of length {t}, block size is only {self.config.block_size}"
+        cache_len = len(cache) if cache is not None else 0
+        total = cache_len + t
+        assert total <= self.config.block_size, \
+            f"Cannot forward sequence of length {total}, block size is only {self.config.block_size}"
 
         # Token embeddings only (no positional embeddings — RoPE handles position)
         h0 = self.transformer.drop(self.transformer.wte(idx))
-        freqs = self.freqs_cis[:t]
+        # Slice RoPE frequencies at the ABSOLUTE positions of these tokens, so a cached
+        # decode step at position 300 rotates as position 300 rather than position 0.
+        start = pos_offset if cache is None else cache_len
+        freqs = self.freqs_cis[start:start + t]
         n_loops = self.config.n_loops
+        n_layer = self.config.n_layer
 
         x = h0
         step_losses = []
@@ -328,8 +407,8 @@ class GPT(nn.Module):
             # re-reading the prompt (Universal Transformer / Ouro style).
             if self.config.loop_input_injection and r > 0:
                 x = x + h0
-            for block in self.transformer.h:
-                x = block(x, freqs)
+            for li, block in enumerate(self.transformer.h):
+                x = block(x, freqs, cache=cache, slot=r * n_layer + li)
             # Deep supervision: read out and accumulate loss after every loop step.
             if targets is not None and self.config.per_step_loss and r < n_loops - 1:
                 _, loss_r = self._readout(x, targets)
@@ -339,20 +418,27 @@ class GPT(nn.Module):
         logits, final_loss = self._readout(x, targets)
 
         if targets is None:
-            return logits, None
+            return logits, None, {}
 
         if self.config.per_step_loss and step_losses:
-            step_losses.append(final_loss)
-            losses = torch.stack(step_losses)
+            all_losses = step_losses + [final_loss]
+            losses = torch.stack(all_losses)
             if self.config.loop_loss_weighting == "linear":
+                # Up-weight later steps: only the final readout is used at inference, so
+                # uniform averaging spends capacity on intermediate predictions that are
+                # thrown away ("readout blind spot", arXiv:2606.24898).
                 w = torch.arange(1, len(losses) + 1, device=losses.device, dtype=losses.dtype)
                 loss = (losses * w).sum() / w.sum()
+            elif self.config.loop_loss_weighting == "final_only":
+                loss = final_loss
             else:  # uniform
                 loss = losses.mean()
         else:
             loss = final_loss
 
-        return logits, loss
+        aux = {"final_loss": final_loss.detach(),
+               "step_losses": [l.detach() for l in step_losses] + [final_loss.detach()]}
+        return logits, loss, aux
 
     def crop_block_size(self, block_size):
         """Reduce the block size (e.g. when loading a larger checkpoint for smaller inference)."""
@@ -424,21 +510,62 @@ class GPT(nn.Module):
         mfu = flops_achieved / flops_promised
         return mfu
 
+    @staticmethod
+    def _filter_logits(logits, top_k=None, top_p=None, min_p=None):
+        """Apply top-k / top-p (nucleus) / min-p truncation to a (B, vocab) logit tensor."""
+        if top_k is not None and top_k > 0:
+            k = min(top_k, logits.size(-1))
+            v, _ = torch.topk(logits, k)
+            logits = logits.masked_fill(logits < v[:, [-1]], -float('Inf'))
+
+        if min_p is not None and min_p > 0:
+            # Keep tokens whose probability is at least min_p * p(most likely token).
+            probs = F.softmax(logits, dim=-1)
+            threshold = min_p * probs.max(dim=-1, keepdim=True).values
+            logits = logits.masked_fill(probs < threshold, -float('Inf'))
+
+        if top_p is not None and 0 < top_p < 1.0:
+            sorted_logits, sorted_idx = torch.sort(logits, descending=True, dim=-1)
+            sorted_probs = F.softmax(sorted_logits, dim=-1)
+            # Cumulative mass *excluding* each token: drop it only if the mass ahead of it
+            # already covers top_p. Keeps the minimal set reaching top_p.
+            cum_before = torch.cumsum(sorted_probs, dim=-1) - sorted_probs
+            remove = cum_before > top_p
+            remove[:, 0] = False
+            logits = logits.masked_fill(remove.scatter(1, sorted_idx, remove), -float('Inf'))
+
+        return logits
+
     @torch.no_grad()
-    def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None,
-                 repetition_penalty=1.2, repetition_window=64):
+    def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None, top_p=None,
+                 min_p=None, repetition_penalty=1.0, repetition_window=64,
+                 eos_token_id=None, use_cache=True):
         """
         Take a conditioning sequence of indices idx (LongTensor of shape (b,t)) and complete
         the sequence max_new_tokens times, feeding the predictions back into the model each time.
 
+        Uses a KV cache: the prompt is encoded once, then each new token costs one
+        single-position forward instead of re-running the whole prefix.
+
         Args:
-            repetition_penalty: Divide logits of recently-used tokens by this value (1.0 = off).
-            repetition_window: How many recent tokens to penalize.
+            repetition_penalty: Divide logits of recently-used tokens by this value (1.0 = off,
+                the default). It penalizes whole BPE pieces, including Latin inflectional
+                endings, so leave it off for evaluation.
+            eos_token_id: Stop once every sequence in the batch has emitted this token.
+            use_cache: Set False to fall back to full-prefix recomputation (reference path).
         """
+        block_size = self.config.block_size
+        cache = self.new_kv_cache() if use_cache else None
+
+        # Prefill on the (possibly cropped) prompt.
+        idx_cond = idx if idx.size(1) <= block_size else idx[:, -block_size:]
+        logits, _, _ = self(idx_cond, cache=cache)
+
+        finished = torch.zeros(idx.size(0), dtype=torch.bool, device=idx.device)
+
         for _ in range(max_new_tokens):
-            idx_cond = idx if idx.size(1) <= self.config.block_size else idx[:, -self.config.block_size:]
-            logits, _ = self(idx_cond)
             logits = logits[:, -1, :] / temperature
+
             # Penalize tokens that appeared in the recent window
             if repetition_penalty > 1.0 and idx.size(1) > 0:
                 window = idx[:, -repetition_window:]
@@ -449,10 +576,32 @@ class GPT(nn.Module):
                             logits[b, token_id] /= repetition_penalty
                         else:
                             logits[b, token_id] *= repetition_penalty
-            if top_k is not None:
-                v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
-                logits[logits < v[:, [-1]]] = -float('Inf')
+
+            logits = self._filter_logits(logits, top_k=top_k, top_p=top_p, min_p=min_p)
             probs = F.softmax(logits, dim=-1)
             idx_next = torch.multinomial(probs, num_samples=1)
+
+            if eos_token_id is not None:
+                # Once a sequence is done, keep emitting EOS so the batch stays rectangular.
+                idx_next = torch.where(finished.unsqueeze(1),
+                                       torch.full_like(idx_next, eos_token_id), idx_next)
+                finished = finished | (idx_next.squeeze(1) == eos_token_id)
+
             idx = torch.cat((idx, idx_next), dim=1)
+
+            if eos_token_id is not None and bool(finished.all()):
+                break
+
+            if cache is not None:
+                # The cache holds absolute positions, so it must be rebuilt when the window
+                # slides past block_size rather than silently rotating tokens wrongly.
+                if len(cache) >= block_size:
+                    cache.reset()
+                    logits, _, _ = self(idx[:, -block_size:], cache=cache)
+                else:
+                    logits, _, _ = self(idx_next, cache=cache)
+            else:
+                idx_cond = idx if idx.size(1) <= block_size else idx[:, -block_size:]
+                logits, _, _ = self(idx_cond)
+
         return idx
