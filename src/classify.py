@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import re
 import statistics
+import unicodedata
 from typing import Dict, List, Optional, Tuple
 
 # --- Eras -----------------------------------------------------------------------------
@@ -354,6 +355,99 @@ def non_latin_ratio(text: str) -> float:
     return round(1000.0 * len(NON_LATIN_WORDS.findall(text[:200_000])) / len(words), 3)
 
 
+# --- Orthography ------------------------------------------------------------------------
+# The corpus mixes editorial conventions: some editions print consonantal u as "v"
+# ("veni"), others as "u" ("ueni"); some distinguish i/j; some mark vowel length. That
+# variation is edition noise, not Latin, and a 32M model spends capacity modelling it.
+# Standardising is therefore usually worth it -- but it is destructive and IRREVERSIBLE in
+# the encoded data, so it is a explicit choice with levels rather than a silent default.
+
+_MACRONS = str.maketrans("āēīōūȳăĕĭŏŭўÁÉÍÓÚáéíóú", "aeiouyaeiouyAEIOUaeiou")
+
+
+def standardize_orthography(text: str, level: str) -> str:
+    """Normalize editorial orthography.
+
+    none          leave the text exactly as the edition printed it.
+    conservative  strip vowel-length macrons and combining diacritics only; u/v and i/j
+                  distinctions are preserved.
+    classical     also fold consonantal v->u and j->i, giving the "ueni uidi uici"
+                  convention used by much of this corpus already.
+    modern        fold the other way, u->v and i->j in consonantal position, giving the
+                  "veni vidi vici" convention.
+
+    Note that "classical" and "modern" are not fully invertible: folding v->u loses the
+    distinction the edition encoded. Choose one and stay with it, because changing level
+    changes the tokenizer's effective vocabulary and invalidates comparisons with
+    checkpoints trained at a different level.
+    """
+    if level == "none":
+        return text
+
+    # Decompose, drop combining marks, recompose: removes macrons and breves generally.
+    text = text.translate(_MACRONS)
+    text = "".join(c for c in unicodedata.normalize("NFD", text)
+                   if not unicodedata.combining(c))
+    text = unicodedata.normalize("NFC", text)
+
+    if level == "conservative":
+        return text
+
+    if level == "classical":
+        text = text.replace("v", "u").replace("V", "U")
+        text = text.replace("j", "i").replace("J", "I")
+        return text
+
+    if level == "modern":
+        # Consonantal u is u followed by a vowel at the start of a syllable. A full
+        # treatment needs syllabification; this handles the common word-initial and
+        # intervocalic cases and leaves the rest alone rather than guessing.
+        text = re.sub(r"\b([Uu])(?=[aeiouAEIOU])",
+                      lambda m: "V" if m.group(1).isupper() else "v", text)
+        text = re.sub(r"(?<=[aeiou])u(?=[aeiou])", "v", text)
+        text = re.sub(r"\b([Ii])(?=[aeou])",
+                      lambda m: "J" if m.group(1).isupper() else "j", text)
+        return text
+
+    raise ValueError(f"unknown orthography level {level!r}")
+
+
+# --- Fragments ---------------------------------------------------------------------------
+
+def fragment_score(text: str) -> float:
+    """0..1, higher means "more likely a fragment/stub rather than continuous prose".
+
+    Fragments are a real problem in this corpus: incipits, one-line charters, tables of
+    contents, index stubs and lacunose excerpts teach the model to start and abandon
+    sentences.
+    """
+    stripped = text.strip()
+    if not stripped:
+        return 1.0
+
+    words = stripped.split()
+    n_words = len(words)
+    if n_words < 40:
+        return 1.0
+
+    # Editorial lacuna markers and ellipses.
+    lacunae = len(re.findall(r"\.\.\.|\[\s*\.\.\.\s*\]|…|\*\*\*|†", stripped))
+    lacuna_rate = lacunae / max(1, n_words / 100)
+
+    # Sentence-ending punctuation: continuous prose has some; lists and stubs have little.
+    sentences = len(re.findall(r"[.!?;:]", stripped))
+    sentence_rate = sentences / max(1, n_words / 100)
+
+    score = 0.0
+    if n_words < 120:
+        score += 0.4
+    if sentence_rate < 2.0:
+        score += 0.3
+    if lacuna_rate > 5.0:
+        score += 0.3
+    return round(min(1.0, score), 3)
+
+
 def classify(text: str, title: str, is_scan_page: bool) -> Dict[str, object]:
     """All classification signals for one document."""
     author = author_from_title(title)
@@ -364,5 +458,6 @@ def classify(text: str, title: str, is_scan_page: bool) -> Dict[str, object]:
         "form": verse_signal(text, is_scan_page),
         "ocr_quality": ocr_quality(text),
         "non_latin_per_1k": non_latin_ratio(text),
+        "fragment_score": fragment_score(text),
         "source_type": "scan_page" if is_scan_page else "text",
     }

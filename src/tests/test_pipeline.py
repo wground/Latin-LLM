@@ -67,6 +67,8 @@ def _build(root: Path):
         seed = 1337
         dry_run = False
         # mixture options
+        orthography = "none"
+        max_fragment_score = 1.01
         weight_profile = "manifest"
         era_weight = None
         genre_weight = None
@@ -90,12 +92,36 @@ def test_work_id_groups_pages_and_subdivisions():
            prepare_corpus.work_id_for("Pagina_De Bello Gallico.djvu_207.txt")
     assert prepare_corpus.work_id_for("Summa Theologiae_Prima pars_Quaestio IX.txt") == \
            prepare_corpus.work_id_for("Summa Theologiae_Tertia pars_Quaestio CXIV.txt")
-    # Same title, different author => different works.
-    assert prepare_corpus.work_id_for("Carmina (Horatius)_Liber I.txt") != \
-           prepare_corpus.work_id_for("Carmina (Venantius Fortunatus)_II.txt")
     # Volumes of a known series collapse together.
     assert prepare_corpus.work_id_for("Patrologia Latina_84.txt") == \
            prepare_corpus.work_id_for("Pagina_Patrologia Latina 139.djvu_89.txt")
+    # The same work named with and without its author is ONE work, not two. Different
+    # sources name works differently, and treating them as distinct would put one copy in
+    # train and the other in val.
+    assert prepare_corpus.work_id_for("Aeneis_I.txt") == \
+           prepare_corpus.work_id_for("Aeneis (Vergilius)_I.txt")
+
+
+def test_author_disambiguates_only_genuinely_ambiguous_titles():
+    """Data-driven: keep the author in the group key exactly when the corpus holds that
+    title under more than one author."""
+    def doc(name):
+        return {"doc_id": name,
+                "work_id": prepare_corpus.work_id_for(name),
+                "author_hint": prepare_corpus.author_hint(name)}
+
+    docs = [doc("Carmina (Horatius)_Liber I.txt"),
+            doc("Carmina (Venantius Fortunatus)_II.txt"),
+            doc("Aeneis (Vergilius)_I.txt"),
+            doc("Aeneis_II.txt")]
+    prepare_corpus.assign_work_groups(docs)
+    groups = {d["doc_id"]: d["work_group"] for d in docs}
+
+    # "Carmina" exists under two authors -> stays split.
+    assert groups["Carmina (Horatius)_Liber I.txt"] != \
+           groups["Carmina (Venantius Fortunatus)_II.txt"]
+    # "Aeneis" has one author -> the two namings collapse into one group.
+    assert groups["Aeneis (Vergilius)_I.txt"] == groups["Aeneis_II.txt"]
 
 
 def test_cleaner_preserves_latin_orthography():
@@ -199,6 +225,59 @@ def test_non_latin_and_ocr_signals():
     assert classify.non_latin_ratio(english) > classify.non_latin_ratio(latin)
     assert classify.non_latin_ratio(latin) == 0.0
     assert classify.ocr_quality(latin) > classify.ocr_quality("g@ll1a €st 0mn|s d1u1sa")
+
+
+def test_orthography_levels():
+    """Standardization is destructive, so each level must do exactly what it claims."""
+    import classify
+    t = "Uēnī uīdī uīcī. Iulius veni vidi vici."
+
+    assert classify.standardize_orthography(t, "none") == t
+
+    # conservative: macrons go, u/v and i/j distinctions stay. Both spellings from the
+    # input must survive side by side.
+    cons = classify.standardize_orthography(t, "conservative")
+    assert "ē" not in cons and "ī" not in cons
+    assert "uidi" in cons and "vidi" in cons, \
+        f"conservative must NOT fold u/v, got {cons!r}"
+
+    # classical: everything folds toward u/i.
+    clas = classify.standardize_orthography(t, "classical")
+    assert "v" not in clas and "j" not in clas
+    assert "ueni uidi uici" in clas
+
+    # modern: folds the other way, including capitals.
+    mod = classify.standardize_orthography(t, "modern")
+    assert "Veni vidi vici" in mod and "Julius" in mod
+
+    with pytest_raises(ValueError):
+        classify.standardize_orthography(t, "nonsense")
+
+
+class pytest_raises:
+    """Minimal context manager so the suite runs with or without pytest installed."""
+
+    def __init__(self, exc):
+        self.exc = exc
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, t, v, tb):
+        if t is None:
+            raise AssertionError(f"expected {self.exc.__name__}")
+        return issubclass(t, self.exc)
+
+
+def test_fragment_score_separates_prose_from_stubs():
+    import classify
+    prose = " ".join(["gallia est omnis diuisa in partes tres."] * 40)
+    assert classify.fragment_score(prose) == 0.0
+    assert classify.fragment_score("incipit liber primus.") == 1.0
+    assert classify.fragment_score("") == 1.0
+    # Lacunose excerpts score above clean prose.
+    lacunose = " ".join(["uerbum ... *** aliud"] * 60)
+    assert classify.fragment_score(lacunose) > classify.fragment_score(prose)
 
 
 def test_mixture_profiles_shift_emphasis_without_touching_disk():

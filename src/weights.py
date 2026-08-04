@@ -111,7 +111,9 @@ PROFILES: Dict[str, Dict] = {
         "quality": True,
         # Hard ceiling on any single document's weight. Without it the factors compound
         # (era x genre x canon) into repetition rates that memorize rather than teach.
-        "max_weight": 40.0,
+        # 10 keeps classical material dominant (~48% of sampled tokens) while holding
+        # repetition to a level a ~1.5B-token run can absorb.
+        "max_weight": 10.0,
     },
     # Flatten the corpus's heavy medieval skew without privileging any canon.
     "balanced": {

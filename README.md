@@ -71,7 +71,21 @@ Replaces the older cosine schedule. Three phases:
 
 ## Training Data
 
-~118M unique tokens from 20,000+ Latin texts spanning:
+~158M unique tokens from 22,652 Latin texts. Sources and licences are recorded per
+document in `src/fetch_manifest.jsonl`:
+
+| Source | Licence | Contribution |
+|---|---|---|
+| Original collection (Wikisource scans, Patrologia Latina, …) | mixed | 20,147 docs |
+| [The Latin Library](https://www.thelatinlibrary.com/) via [cltk/lat_text_latin_library](https://github.com/cltk/lat_text_latin_library) | Public Domain Mark 1.0 | 2,101 docs, 93.9M chars |
+| [Perseus canonical-latinLit](https://github.com/PerseusDL/canonical-latinLit) | CC BY-SA 4.0 | 404 docs, 46.5M chars |
+
+The added sources exist to fix a specific bottleneck: classical Latin was only ~3.4M
+tokens, so *any* attempt to weight it heavily re-read the same text hundreds of times.
+It is now 12.5% of the corpus by bytes (~18M tokens), which makes a classical-heavy
+mixture trainable rather than memorizable.
+
+Spanning:
 - **Classical**: Cicero, Caesar, Virgil, Horace, Ovid, Livy, Tacitus, Catullus, Pliny, Terence, Varro
 - **Biblical/Patristic**: Vulgata Clementina, Patrologia Latina
 - **Medieval**: Charters, chronicles, correspondence
@@ -140,11 +154,28 @@ python3 src/prepare_corpus.py --reweight --weight-profile canonical \
     --canon-boost 6 --max-weight 30 --min-quality 0.85 --budget-tokens 2.5e9
 ```
 
-**Read the `epochs` column before training.** The factors compound, and the corpus contains
-only ~3.4M tokens of classical Latin, so heavy emphasis plus a long run means seeing the
-same text hundreds of times — which memorizes it rather than teaching its register.
-`--max-weight` caps this, and the tool warns past ~40 epochs. For reference, the existing
-100k-iteration run under the `manifest` profile already gave classical material ~45 epochs.
+**Read the `epochs` column before training.** The factors compound, so heavy emphasis plus
+a long run means seeing the same text dozens or hundreds of times — which memorizes it
+rather than teaching its register. `--max-weight` caps this and the tool warns past ~40
+epochs.
+
+The shipped mixture is `canonical` with `--max-weight 10`: classical material is 47.7% of
+sampled tokens (from 12.5% of the corpus), poetry gets 3.4× emphasis, and exegesis,
+sermons and canon law drop to 2–4 epochs as background linguistic support. That lands
+classical at ~40 epochs for a **1.5B-token budget** (~60k iterations at 24,576 tokens/iter).
+A longer run needs either lower emphasis or more classical text — corpus size sets a hard
+floor, since even *zero* emphasis puts classical at ~17 epochs over a 2.458B-token run.
+
+Two other knobs, both off by default because they are destructive:
+
+```bash
+--orthography {none,conservative,classical,modern}   # macrons, u/v, i/j
+--max-fragment-score 0.7                             # drop stubs, incipits, index pages
+```
+
+Orthography standardization is irreversible in the encoded data and changes tokenization,
+so checkpoints trained at different levels are not comparable. `conservative` strips
+macrons only; `classical` folds v→u and j→i.
 
 ## Usage
 

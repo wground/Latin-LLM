@@ -1,8 +1,32 @@
 {
-  "use_tier": true,
-  "era": {},
-  "genre": {},
-  "canon": 1.0,
-  "quality": false,
-  "name": "manifest"
+  "use_tier": false,
+  "era": {
+    "classical": 6.0,
+    "late_antique": 2.0,
+    "early_medieval": 1.0,
+    "high_medieval": 1.5,
+    "late_medieval": 1.5,
+    "neo_latin": 2.0,
+    "compilation": 0.4,
+    "unknown": 0.6
+  },
+  "genre": {
+    "poetry": 3.0,
+    "rhetoric_dialogue": 2.5,
+    "history_hagiography": 1.5,
+    "philosophy_scholastic": 1.5,
+    "science_technical": 1.2,
+    "scripture": 1.0,
+    "exegesis": 0.5,
+    "sermons": 0.6,
+    "letters": 0.8,
+    "law_canon": 0.5,
+    "liturgy": 0.4,
+    "monastic_devotional": 0.8,
+    "unknown": 0.8
+  },
+  "canon": 5.0,
+  "quality": true,
+  "max_weight": 10.0,
+  "name": "canonical"
 }

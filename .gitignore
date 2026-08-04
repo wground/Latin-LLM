@@ -15,6 +15,11 @@ latin_training_config.json
 # Rebuilt datasets (regenerate with: python3 src/prepare_corpus.py)
 src/gpt_data_latin_v2/
 
+# Corpus acquisition. Kept out of the repo by request. Note the tradeoff: without it,
+# src/fetch_manifest.jsonl records WHAT was fetched and under which licence, but not how
+# to reproduce the fetch.
+src/fetch_corpus.py
+
 # Python
 __pycache__/
 *.py[cod]

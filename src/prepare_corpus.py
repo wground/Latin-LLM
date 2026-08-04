@@ -106,15 +106,22 @@ def clean_text(text: str) -> Dict[str, object]:
 
 # --- Work identity --------------------------------------------------------------------
 
+AUTHOR_PAREN_RE = re.compile(r"\s*\(([^)]*)\)\s*$")
+
+
 def work_id_for(filename: str) -> str:
-    """Map a filename to the work it belongs to.
+    """Map a filename to the TITLE of the work it belongs to, without the author.
 
     The corpus follows a consistent convention:
         ``Pagina_<Work>.djvu_<n>.txt``      one scanned page of <Work>
         ``<Work>_<part>[_<subpart>].txt``   one subdivision of <Work>
         ``<Work>.txt``                      a whole short work
-    Author parentheses are kept, so ``Carmina (Horatius)`` and
-    ``Carmina (Venantius Fortunatus)`` stay distinct works.
+
+    The trailing ``(Author)`` is stripped here and re-attached only where it is actually
+    needed for disambiguation (see ``assign_work_groups``). Sources name the same work
+    differently -- "Aeneis" in one, "Aeneis (Vergilius)" in another -- and treating those
+    as two works would put one in train and the other in val, which is precisely the
+    cross-split leakage the work-level split exists to prevent.
     """
     stem = filename[:-4] if filename.endswith(".txt") else filename
 
@@ -125,7 +132,7 @@ def work_id_for(filename: str) -> str:
         # Everything before the first underscore is the work; the rest is subdivision.
         work = stem.split("_", 1)[0]
 
-    work = work.strip().lower()
+    work = AUTHOR_PAREN_RE.sub("", work).strip().lower()
 
     # Collapse volume numbers for known multi-volume series, so that volume 1 of a series
     # in train and volume 2 in val does not count as an honest held-out work.
@@ -136,6 +143,38 @@ def work_id_for(filename: str) -> str:
             work = series
 
     return work or stem.lower()
+
+
+def author_hint(filename: str) -> Optional[str]:
+    """The trailing ``(Author)`` of a filename, if any."""
+    stem = filename[:-4] if filename.endswith(".txt") else filename
+    stem = stem.split("_", 1)[0]
+    m = AUTHOR_PAREN_RE.search(stem)
+    if not m:
+        return None
+    a = m.group(1).strip().lower()
+    return a or None
+
+
+def assign_work_groups(docs: List[Dict]) -> None:
+    """Set ``work_group`` on every document, disambiguating by author only where needed.
+
+    Data-driven rather than a hardcoded list of generic titles: a title keeps its author
+    in the group key exactly when the corpus actually contains that title under more than
+    one author. So "Carmina" stays split between Horace and Venantius Fortunatus, while
+    "Aeneis" and "Aeneis (Vergilius)" collapse into one group.
+    """
+    authors_per_title: Dict[str, set] = defaultdict(set)
+    for d in docs:
+        a = d.get("author_hint")
+        if a:
+            authors_per_title[d["work_id"]].add(a)
+
+    ambiguous = {t for t, a in authors_per_title.items() if len(a) > 1}
+    for d in docs:
+        title = d["work_id"]
+        a = d.get("author_hint")
+        d["work_group"] = f"{title} ({a})" if (title in ambiguous and a) else title
 
 
 # --- Main -----------------------------------------------------------------------------
@@ -273,6 +312,7 @@ def build(args) -> int:
     # --- Pass 1: read, clean, hash, assign work ids ---
     print("Reading and cleaning...")
     docs: List[Dict] = []
+    n_fragments = 0
     by_hash: Dict[str, List[int]] = defaultdict(list)
     for path in originals:
         basename = os.path.basename(path)
@@ -283,7 +323,12 @@ def build(args) -> int:
             continue
         cleaned = clean_text(raw)
         text = cleaned.pop("text")
+        text = classify.standardize_orthography(text, args.orthography)
         if len(text) < args.min_chars:
+            continue
+        frag = classify.fragment_score(text)
+        if frag >= args.max_fragment_score:
+            n_fragments += 1
             continue
 
         rel = os.path.relpath(path, corpus_dir)
@@ -294,6 +339,7 @@ def build(args) -> int:
             "doc_id": len(docs),
             "path": rel,
             "work_id": work_id_for(basename),
+            "author_hint": author_hint(basename),
             "is_scan_page": is_scan,
             "chars": len(text),
             "bytes": len(text.encode("utf-8")),
@@ -306,14 +352,20 @@ def build(args) -> int:
         by_hash[content_hash].append(doc["doc_id"])
         docs[-1]["_text"] = text
 
-    print(f"  {len(docs):,} documents kept ({len(originals) - len(docs):,} dropped as too short)")
+    dropped = len(originals) - len(docs)
+    print(f"  {len(docs):,} documents kept ({dropped:,} dropped: {n_fragments:,} fragments, "
+          f"{dropped - n_fragments:,} too short)")
+    if args.orthography != "none":
+        print(f"  orthography standardized to '{args.orthography}' "
+              f"(irreversible in the encoded data; changes tokenization)")
     report_classification(docs)
 
     # --- Grouping: union work families with exact-duplicate clusters ---
     # A group is the unit that must not straddle the split. Exact duplicates are merged
     # into the same group even when their filenames suggest different works, so identical
     # text can never appear on both sides.
-    group_of: Dict[int, str] = {d["doc_id"]: d["work_id"] for d in docs}
+    assign_work_groups(docs)
+    group_of: Dict[int, str] = {d["doc_id"]: d["work_group"] for d in docs}
     merged = 0
     for h, ids in by_hash.items():
         if len(ids) > 1:
@@ -356,8 +408,9 @@ def build(args) -> int:
         val_bytes += group_bytes[g]
 
     for d in docs:
-        d["split"] = "val" if group_of[d["doc_id"]] in val_groups else "train"
+        # group_of may have been merged further by exact-duplicate clustering above.
         d["work_group"] = group_of[d["doc_id"]]
+        d["split"] = "val" if d["work_group"] in val_groups else "train"
 
     n_val_docs = sum(1 for d in docs if d["split"] == "val")
     print(f"Split: {len(docs) - n_val_docs:,} train docs / {n_val_docs:,} val docs "
@@ -463,6 +516,16 @@ def main():
                         "val byte target (keeps one huge series from dominating validation)")
     p.add_argument("--min-chars", type=int, default=32,
                    help="Drop documents shorter than this after cleaning")
+    p.add_argument("--orthography", default="none",
+                   choices=["none", "conservative", "classical", "modern"],
+                   help="Standardize editorial orthography. 'conservative' strips macrons; "
+                        "'classical' also folds v->u and j->i; 'modern' folds the other "
+                        "way. IRREVERSIBLE in the encoded data and changes tokenization, "
+                        "so checkpoints trained at different levels are not comparable.")
+    p.add_argument("--max-fragment-score", type=float, default=1.01,
+                   help="Drop documents scoring at or above this on the fragment "
+                        "heuristic (0-1; 1.0 drops the clearest stubs, 0.7 is aggressive). "
+                        "Default keeps everything.")
     p.add_argument("--seed", type=int, default=1337)
     p.add_argument("--dry-run", action="store_true",
                    help="Report the split without writing any files")
